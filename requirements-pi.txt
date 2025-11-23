@@ -1,0 +1,11 @@
+# Raspberry Pi 5 specific dependencies
+
+# TensorFlow Lite (lightweight inference)
+# Use the pre-built wheel for ARM64
+tensorflow-lite-runtime==2.14.0
+
+# System monitoring (optional)
+psutil==5.9.6
+
+# Headless OpenCV (no GUI dependencies)
+opencv-python-headless==4.8.1.78

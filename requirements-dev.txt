@@ -7,7 +7,7 @@ ipykernel==6.26.0
 
 # Model training
 tensorflow==2.19.0
-keras==2.14.0
+keras>=3.5.0
 
 # Data visualization
 matplotlib==3.8.2

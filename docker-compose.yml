@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  figurine-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: figurine-dev
+    # Pass webcam device to container
+    devices:
+      - /dev/video0:/dev/video0
+    # Enable display for debugging (X11 forwarding)
+    environment:
+      - DISPLAY=${DISPLAY}
+      - FIGURINE_ENV=dev
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./models:/app/models
+    # Keep container running for development
+    stdin_open: true
+    tty: true
+    command: /bin/bash

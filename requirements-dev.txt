@@ -6,7 +6,7 @@ notebook==7.0.6
 ipykernel==6.26.0
 
 # Model training
-tensorflow==2.14.0
+tensorflow==2.19.0
 keras==2.14.0
 
 # Data visualization

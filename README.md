@@ -110,7 +110,30 @@ figurine/
 
 ## Getting Started
 
-### Installation
+### Quick Start with Docker (Recommended)
+
+**Development Mode (Linux Notebook):**
+
+```bash
+# Build and run in Docker with webcam access
+./docker-run-dev.sh
+```
+
+**Raspberry Pi Mode:**
+
+```bash
+# Build and run optimized for Pi
+./docker-run-pi.sh
+```
+
+Or use Docker Compose:
+
+```bash
+docker-compose up -d
+docker-compose exec figurine-dev /bin/bash
+```
+
+### Alternative: Manual Installation
 
 **On Linux Development Machine:**
 
@@ -124,6 +147,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
@@ -143,6 +167,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install dependencies (optimized for Pi)
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 pip install -r requirements-pi.txt
 
@@ -151,6 +176,18 @@ export FIGURINE_ENV=pi
 ```
 
 ### Running the Application
+
+**With Docker:**
+
+```bash
+# Development mode
+./docker-run-dev.sh
+
+# Inside container
+python src/main.py
+```
+
+**Without Docker:**
 
 ```bash
 # Ensure environment is set

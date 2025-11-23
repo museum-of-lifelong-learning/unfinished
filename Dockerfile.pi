@@ -1,0 +1,31 @@
+# Use Python 3.12 slim base image optimized for ARM64
+FROM python:3.12-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install minimal system dependencies for OpenCV (headless mode)
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements files
+COPY requirements.txt requirements-pi.txt ./
+
+# Upgrade pip and install build tools
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install Python dependencies (Pi-specific)
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-pi.txt
+
+# Copy project files
+COPY . .
+
+# Set environment variable for Raspberry Pi mode
+ENV FIGURINE_ENV=pi
+
+# Run the application
+CMD ["python", "src/main.py"]

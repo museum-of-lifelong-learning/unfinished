@@ -14,21 +14,25 @@ from config import config
 from src.capture import CameraCapture
 
 
-# Define your 36 shape types
+# Define your shape types
 SHAPE_CLASSES = [
-    'sphere', 'cube', 'cylinder', 'cone', 'pyramid', 'prism',
-    'hexagon', 'octagon', 'torus', 'ellipsoid', 'cuboid', 'tetrahedron',
-    'dodecahedron', 'icosahedron', 'star', 'heart', 'cross', 'ring',
-    'disc', 'rod', 'block', 'wedge', 'arch', 'dome',
-    'spiral', 'wave', 'zigzag', 'ball', 'box', 'tube',
-    'cap', 'base', 'joint', 'connector', 'adapter', 'terminal'
+    'circle',           # Kreis
+    'quadrat',          # Quadrat (square)
+    'rechteck',         # Rechteck (rectangle)
+    'parallelogram',    # Parallelogramm
+    'half_circle',      # Halbkreis
+    'dreieck',          # Dreieck (triangle)
+    'trapez',           # Trapez (trapezoid)
+    'church_window'     # Kirchenfenster
 ]
 
 # Define color categories
 COLOR_CLASSES = [
-    'red', 'blue', 'green', 'yellow', 'orange', 'purple',
-    'pink', 'cyan', 'magenta', 'brown', 'black', 'white',
-    'gray', 'lime', 'navy', 'teal', 'maroon', 'olive'
+    'yellow',   # Gelb
+    'orange',   # Orange
+    'violett',  # Violett (purple)
+    'green',    # Grün
+    'white'     # Weiß
 ]
 
 

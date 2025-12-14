@@ -1,0 +1,29 @@
+// Header, centred
+// Picture image.png with big overly text :"Die Antwort ist schon da.". Overlaytext is centred on vertical of the image.
+
+Figurina Nr. 5678 / 27 000
+
+// Body, right alligned
+Wenn andere schon am Verzweifeln sind, blühst du erst richtig auf. In jeder Erfahrung siehst du eine Chance und schreckst nicht davor zurück, dich Neuem zu stellen und in unbekanntes Gelände vorzudringen. Allerdings muss da schon etwas für dich rausschauen. Ein bisschen Spass, mindestens. Das ist dein Antrieb – nutze ihn weise und inspiriere auch andere damit.
+
+Das einzige, was dir schlaflose Nächte bereitet, ist die Fülle an Möglichkeiten. Wie bloss soll man da die Nadel im Heuhaufen finden? Die gute Nachricht: Auch wenn sich das manchmal sehr einsam anfühlt – du bist in bester Gesellschaft. Das hier ist für dich.
+
+
+**Mächtige Frage:** Wie treffe ich die richtige Entscheidung?
+
+**Informal Opportunity:** Wer kennt dich am besten? Sprich mit dieser Person. Auch wenn du nicht immer hören willst, was sie zu sagen hat. Aber oft sind genau sie unser wichtigster Spiegel.
+
+**Offizielles Angebot:** viamia, berufliche Standortbestimmung für Menschen ab 40. Ein Angebot des Bundes.
+
+**Inspiration:** Beginners, Tom Vanderbilt (Buch)
+
+**Nächster Schritt:** Peer-Workshop für Aufsteiger*innen
+
+// QR-Code to: https://youtu.be/dQw4w9WgXcQ?si=NYSaJdGjv3GCtNGD&t=9 QR code is centred.
+
+// Footer, centred
+«Courage, dear heart!" C.S. Lewis 
+
+Vielen Dank, dass du
+den Status quo hinterfragst.
+Figurati!

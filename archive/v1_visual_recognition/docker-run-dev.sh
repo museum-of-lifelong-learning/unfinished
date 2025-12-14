@@ -11,9 +11,12 @@ echo "Starting container with webcam access..."
 # Allow X11 forwarding for GUI (optional, for debug window)
 xhost +local:docker 2>/dev/null || echo "Note: X11 forwarding not available"
 
+CAMERA_INDEX = 2
+
 docker run -it --rm \
     --name figurine-dev \
     --device=/dev/video0:/dev/video0 \
+    --device=/dev/video2:/dev/video2 \
     -e DISPLAY=$DISPLAY \
     -e FIGURINE_ENV=dev \
     -v /tmp/.X11-unix:/tmp/.X11-unix:rw \

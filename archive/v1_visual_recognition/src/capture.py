@@ -32,7 +32,32 @@ class CameraCapture:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
         self.cap.set(cv2.CAP_PROP_FPS, config.CAMERA_FPS)
         
+        # Fixed camera settings for consistency
+        # Disable auto-exposure
+        self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 0.25 = manual mode, 0.75 = auto
+        
+        # Set manual exposure (range: 0-255, adjust based on lighting)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, -6)  # Negative values = shorter exposure
+        
+        # Disable auto white balance
+        self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
+        
+        # Set white balance temperature (range varies by camera, typically 2800-6500K)
+        self.cap.set(cv2.CAP_PROP_WB_TEMPERATURE, 4600)
+        
+        # Set gain/ISO (lower = less noise, needs more light)
+        self.cap.set(cv2.CAP_PROP_GAIN, 50)  # Range: 0-255
+        
+        # Disable autofocus if available
+        self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+        
+        # Set focus manually if needed (range varies by camera)
+        # self.cap.set(cv2.CAP_PROP_FOCUS, 50)
+        
         print(f"Camera started: {config.CAMERA_WIDTH}x{config.CAMERA_HEIGHT} @ {config.CAMERA_FPS}fps")
+        print(f"Manual settings: Exposure={self.cap.get(cv2.CAP_PROP_EXPOSURE)}, "
+              f"Gain={self.cap.get(cv2.CAP_PROP_GAIN)}, "
+              f"WB={self.cap.get(cv2.CAP_PROP_WB_TEMPERATURE)}")
     
     def read_frame(self):
         """

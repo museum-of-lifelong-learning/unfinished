@@ -1,13 +1,6 @@
-# Figurine Shape Recognition - Common Dependencies
-# Compatible with both Linux development and Raspberry Pi 5
-
-# Core computer vision
-opencv-python==4.10.0.84
-numpy==1.26.4
-
-# Machine Learning
-tensorflow-lite-runtime==2.14.0; platform_machine == "aarch64"  # For Raspberry Pi
-tensorflow==2.19.0; platform_machine == "x86_64"  # For development
-
-# Utilities
-Pillow==10.1.0
+pyserial
+python-escpos
+requests
+openai
+pyusb
+jinja2

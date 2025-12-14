@@ -10,6 +10,7 @@ class DevConfig(BaseConfig):
     
     # Override for development
     DEBUG = True
+    CAMERA_INDEX = 2
     
     # Higher resolution for development
     CAMERA_WIDTH = 1280

@@ -1,228 +1,55 @@
-# Figurine Shape Recognition
+# Figurine Interaction System (RFID & Thermal Printer)
 
-Real-time computer vision system for detecting and classifying stacked geometric shapes (figurines) using a webcam.
+This project identifies objects using UHF RFID tags and generates a printed output based on the identified items using an LLM.
 
-## Project Overview
+## Workflow
 
-This project enables recognition of up to 6 basic geometric shapes (sphere, cube, cylinder, etc.) stacked vertically on a stick. The system uses computer vision and lightweight machine learning to identify each shape and its position in the stack.
+1.  **Selection**: User chooses 6 items (out of 36 available).
+2.  **Identification**: User places the 6 items (each with a UHF RFID tag) over the antenna.
+3.  **Recognition**: The system reads the tags to identify the items.
+4.  **Processing**: An LLM (Remote or Local) generates text based on the identified items.
+5.  **Output**: The generated text is printed on a thermal printer.
 
-**Target Platforms:**
+## Hardware Setup
 
-- Development: Linux notebook (for testing and iteration)
-- Deployment: Raspberry Pi 5 with USB webcam
+### Controller
+- **Device**: HP Mini or Raspberry Pi 5 (TBD)
+- **OS**: Linux (Debian/Ubuntu based)
 
-## Architecture
+### RFID System
+- **Reader**: [Rainy UHF RFID HAT for Raspberry Pi](https://shop.sb-components.co.uk/products/rainy-uhf-pi-hat-complete-kit)
+    - Interface: USB / UART
+    - Antenna: 3dBi
+- **Tags**: [NXP UCODE® 9 30mm | ISO18000-6C](https://www.rfidlabel.com/product/30mm-round-rfid-label/)
 
-### Hardware Requirements
+### Printer
+- **Model**: [Epson TM-T70II M296A](https://www.epson.ch/de_CH/produkte/drucker/bondrucker/pos-drucker/pc-pos-drucker/epson-tm-t70ii-series/p/12752)
+- **Type**: Thermal Receipt Printer
+- **Interface**: USB / Ethernet (TBD based on specific model variant)
 
-- Raspberry Pi 5 (4GB+ RAM recommended) or Linux development machine
-- USB Webcam (720p or higher)
-- Figurine shapes and stick assembly
-- Optional: Controlled lighting setup
+## Software Stack
 
-### Software Stack
+- **Language**: Python 3
+- **Libraries**:
+    - `pyserial`: For communicating with the RFID reader (if UART) or Printer.
+    - `python-escpos`: For controlling the Epson thermal printer.
+    - `requests` / `openai`: For LLM interaction.
 
-- **Python 3.9+**
-- **OpenCV**: Video capture, preprocessing, geometric analysis
-- **TensorFlow Lite**: Lightweight inference for shape classification
-- **NumPy**: Numerical operations
-- **Git**: Version control with platform-specific configurations
+## Setup & Installation
 
-## Technical Approach
+1.  **Install Dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-### Phase 1: Classical CV + Lightweight ML (Hybrid Approach)
+2.  **Run Application**:
+    ```bash
+    python src/main.py
+    ```
 
-**Pipeline:**
+## Development Status
 
-```text
-Webcam → OpenCV Capture → Preprocessing → Shape Detection → Classification → Stacking Analysis
-```
-
-**Key Components:**
-
-1. **Frame Preprocessing** (OpenCV)
-   - Background subtraction
-   - Color-based segmentation
-   - Noise reduction and filtering
-
-2. **Shape Detection** (OpenCV)
-   - Contour detection along the vertical stick
-   - Region of Interest (ROI) extraction per shape
-   - Geometric feature analysis (circularity, corners, aspect ratio)
-
-3. **Classification** (TensorFlow Lite)
-   - Lightweight CNN (MobileNetV3-small backbone)
-   - Per-shape classification from ROI
-   - Confidence scoring
-
-4. **Stacking Logic** (Python)
-   - Y-coordinate tracking for vertical ordering
-   - Stick detection as reference line
-   - Output: Ordered list of shapes from bottom to top
-
-### Design Decisions
-
-- **Hybrid approach**: Leverage OpenCV's efficiency for detection, ML only for classification
-- **Color coding**: Optional colored markers between shapes to aid segmentation
-- **Fixed camera**: Simplifies calibration and improves reliability
-- **Target performance**: 10-15 FPS on Raspberry Pi 5
-
-## Configuration Strategy
-
-The project uses environment-based configuration to seamlessly switch between development and production environments:
-
-- **`config/dev_config.py`**: Linux notebook settings (higher resolution, debug mode)
-- **`config/pi_config.py`**: Raspberry Pi 5 optimized settings (lower resolution, optimized inference)
-- **Environment variable `FIGURINE_ENV`**: Set to `dev` or `pi` to load appropriate config
-- **Git tracked**: All configurations version controlled for reproducibility
-
-## Project Structure
-
-```text
-figurine/
-├── README.md
-├── requirements.txt           # Common dependencies
-├── requirements-dev.txt       # Development-only dependencies
-├── requirements-pi.txt        # Raspberry Pi specific dependencies
-├── config/
-│   ├── __init__.py
-│   ├── base_config.py        # Shared configuration
-│   ├── dev_config.py         # Development overrides
-│   └── pi_config.py          # Raspberry Pi overrides
-├── src/
-│   ├── __init__.py
-│   ├── capture.py            # Webcam capture and preprocessing
-│   ├── detection.py          # Shape detection (OpenCV)
-│   ├── classification.py     # ML-based classification (TFLite)
-│   ├── stacking.py           # Vertical ordering logic
-│   └── main.py               # Main application entry point
-├── models/
-│   ├── shape_classifier.tflite
-│   └── labels.txt
-├── data/
-│   ├── training/             # Training images
-│   └── test/                 # Test images
-├── notebooks/
-│   └── exploration.ipynb     # Data exploration and model training
-└── tests/
-    └── test_detection.py
-```
-
-## Getting Started
-
-### Quick Start with Docker (Recommended)
-
-**Development Mode (Linux Notebook):**
-
-```bash
-# Build and run in Docker with webcam access
-./docker-run-dev.sh
-```
-
-**Raspberry Pi Mode:**
-
-```bash
-# Build and run optimized for Pi
-./docker-run-pi.sh
-```
-
-Or use Docker Compose:
-
-```bash
-docker-compose up -d
-docker-compose exec figurine-dev /bin/bash
-```
-
-### Alternative: Manual Installation
-
-**On Linux Development Machine:**
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd figurine
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-
-# Set environment
-export FIGURINE_ENV=dev
-```
-
-**On Raspberry Pi 5:**
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd figurine
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies (optimized for Pi)
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-pip install -r requirements-pi.txt
-
-# Set environment
-export FIGURINE_ENV=pi
-```
-
-### Running the Application
-
-**With Docker:**
-
-```bash
-# Development mode
-./docker-run-dev.sh
-
-# Inside container
-python src/main.py
-```
-
-**Without Docker:**
-
-```bash
-# Ensure environment is set
-export FIGURINE_ENV=dev  # or 'pi'
-
-# Run the main application
-python src/main.py
-```
-
-## Development Workflow
-
-1. **Develop on Linux**: Fast iteration with full debugging tools
-2. **Test changes**: Verify functionality locally
-3. **Commit to Git**: Push changes to repository
-4. **Deploy to Pi**: Pull latest code and run with Pi configuration
-5. **Iterate**: Refine based on real-world performance
-
-## Roadmap
-
-- [ ] Phase 1: Setup project structure and configuration system
-- [ ] Phase 2: Implement OpenCV capture and preprocessing
-- [ ] Phase 3: Develop shape detection with contour analysis
-- [ ] Phase 4: Create and train TFLite classification model
-- [ ] Phase 5: Implement stacking logic and ordering
-- [ ] Phase 6: Optimize performance for Raspberry Pi 5
-- [ ] Phase 7: Add visualization and debugging UI
-
-## Future Enhancements
-
-- Web interface for remote monitoring
-- Data logging and analytics
-- Support for custom shape definitions
-- Multi-camera support for 3D reconstruction
-- Edge-case handling (missing shapes, tilted stacks)
-
-## License
-
-MIT License
+- [x] Archive old visual recognition approach.
+- [ ] RFID Reader integration (Skeleton implemented).
+- [ ] Thermal Printer integration.
+- [ ] LLM integration.

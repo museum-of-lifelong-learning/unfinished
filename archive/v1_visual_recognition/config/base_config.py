@@ -41,6 +41,11 @@ class BaseConfig:
     INFERENCE_THREADS = 2
     FRAME_SKIP = 1  # Process every Nth frame
     
+    # Manual camera settings for consistent lighting
+    MANUAL_EXPOSURE = -6  # Negative = shorter exposure, adjust for your lighting
+    MANUAL_GAIN = 50  # ISO equivalent, 0-255
+    MANUAL_WB_TEMP = 4600  # White balance temperature in Kelvin
+    
     # Display
     SHOW_DEBUG_WINDOW = False
     SHOW_FPS = True

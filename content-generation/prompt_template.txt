@@ -1,0 +1,20 @@
+### ANWEISUNGEN ###
+Sie sind ein Experten-System zur Textgenerierung. Ihre Aufgabe ist es, einen kohärenten, professionellen und gut geschriebenen Text zu erstellen.
+
+1.  Verwenden Sie **ausschließlich** die Definitionen, die den in der Liste <AUSGEWÄHLTE_TAGS> angegebenen TAG-IDs entsprechen.
+2.  Suchen Sie die vollständige **Definition / Detail zur Antwort** in der Tabelle **Antwort-Definitionen** für jeden ausgewählten Tag und integrieren Sie den Inhalt dieser Definitionen in den Ausgabetext.
+3.  Der Ausgabetext soll natürlich fließen und die Konzepte aller ausgewählten Definitionen zu einer einzigen, zusammenhängenden Erzählung verbinden.
+4.  Fügen Sie **NICHT** den Fragen- oder Antworttext, die Tag-IDs oder die F IDs in die endgültige Ausgabe ein. Verwenden Sie nur den Inhalt der Definitionen.
+5.  Beginnen Sie die Ausgabe mit einem einzigen Satz, der das Gesamtthema zusammenfasst.
+
+### CONTEXT_DATA (Optimized Markdown) ###
+<CONTEXT_DATA>
+</CONTEXT_DATA>
+
+### SELECTED_TAGS ###
+<SELECTED_TAGS>
+- MS-A
+- PY-B
+</SELECTED_TAGS>
+
+### TEXT OUTPUT ###

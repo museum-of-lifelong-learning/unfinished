@@ -8,7 +8,9 @@ import sys
 import time
 import logging
 import os
+import argparse
 from pathlib import Path
+from receipt_template import ReceiptData, ReceiptRenderer
 
 # Add rfid module to path
 from rfid_reader import auto_detect_rfid, M5StackUHF
@@ -18,7 +20,7 @@ from printer import auto_detect_printer, ThermalPrinter
 
 # Import refactored modules
 from figurine_id import calculate_figurine_id, tags_to_digits
-from slip_printing import print_full_receipt
+from slip_printing import create_full_receipt
 
 # Setup logging
 root_logger = logging.getLogger()
@@ -42,18 +44,33 @@ logger = logging.getLogger(__name__)
 
 OLLAMA_MODEL = 'qwen2.5:3b'
 
-def get_cpu_temperature() -> float:
-    """Read the CPU temperature from the system."""
+def get_temperature(zone_path: str, name: str) -> float:
+    """Read temperature from a thermal zone."""
     try:
-        with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
-            temp = float(f.read().strip()) / 1000.0
-        return temp
+        with open(zone_path, "r") as f:
+            raw = f.read().strip()
+        value = float(raw)
+        temp_c = value / 1000.0 if value > 200 else value
+        if -30.0 < temp_c < 120.0:
+            return temp_c
+        logger.debug(f"Discarding out-of-range {name} temp from {zone_path}: {temp_c}C (raw={raw})")
     except Exception as e:
-        logger.warning(f"Could not read CPU temperature: {e}")
-        return 0.0
+        logger.debug(f"Could not read {name} temperature from {zone_path}: {e}")
+    return None
+
+
+
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Figurine Service')
+    parser.add_argument('--no-print', action='store_true', 
+                        help='Skip actual printing to save paper (development mode)')
+    args = parser.parse_args()
+    
     logger.info("=== Figurine Service Starting ===")
+    if args.no_print:
+        logger.info("*** NO-PRINT MODE: Printing disabled to save paper ***")
     
     # 1. Auto-detect devices
     logger.info("Detecting devices...")
@@ -94,16 +111,16 @@ AI Model:    {OLLAMA_MODEL}
 ======================
 """
     logger.info(status_msg)
-    print(status_msg)
     
     if printer:
-        printer.print_test_slip({
-            "RFID Reader": rfid_status,
-            "Display": display_status,
-            "Printer": printer_status,
-            "AI Model": OLLAMA_MODEL
-        })
-        logger.info("Test slip printed.")
+        if not args.no_print:
+            printer.print_test_slip({
+                "RFID Reader": rfid_status,
+                "Display": display_status,
+                "Printer": printer_status,
+                "AI Model": OLLAMA_MODEL
+            })
+            logger.info("Test slip printed.")
 
     if not rfid:
         logger.error("Cannot proceed without RFID reader. Exiting.")
@@ -115,6 +132,7 @@ AI Model:    {OLLAMA_MODEL}
             # State: BORED / SCANNING
             logger.info("State: BORED (Scanning for 6 tags)")
             if display:
+                display.set_brightness(3)
                 display.set_pattern("BORED")
             
             # Scan for tags
@@ -130,16 +148,13 @@ AI Model:    {OLLAMA_MODEL}
                         unique_tags[tag['epc']] = tag
                     
                     logger.info(f"Found {len(unique_tags)} unique tags so far...")
-                    
-                    # Update display with progress
-                    if display:
-                        display.set_progress(len(unique_tags), 6)
                 
                 time.sleep(0.1)
             
             # We have 6 tags!
             logger.info("State: THINKING (Processing tags)")
             if display:
+                display.set_brightness(6)
                 display.set_pattern("THINKING")
             
             tags_list = list(unique_tags.values())
@@ -154,24 +169,61 @@ AI Model:    {OLLAMA_MODEL}
             if display:
                 display.set_pattern("PRINTING")
             
+            receipt_data = create_full_receipt(figurine_id, model_name=OLLAMA_MODEL)
+            
             try:
-                print_full_receipt(printer, figurine_id, model_name=OLLAMA_MODEL)
-                logger.info("Receipt printed successfully.")
+                if args.no_print:
+                    logger.info("[NO-PRINT MODE] Skipping receipt printing")
+                    logger.info(f"Would have printed receipt for Figurine ID: {figurine_id}")
+                else:
+                    renderer = ReceiptRenderer()
+                    renderer.render_to_printer(printer.printer, receipt_data)
+
+                    logger.info("Receipt printed successfully.")
                 
-                # Log temperature
-                cpu_temp = get_cpu_temperature()
-                logger.info(f"CPU Temperature: {cpu_temp:.1f}°C")
+                # Log temperatures
+                cpu_temp = get_temperature("/sys/class/thermal/thermal_zone2/temp", "CPU")
+                wifi_temp = get_temperature("/sys/class/thermal/thermal_zone1/temp", "WiFi")
+                
+                if cpu_temp is not None:
+                    logger.info(f"CPU Temperature: {cpu_temp:.1f}°C")
+                else:
+                    logger.info("CPU Temperature: unavailable")
+                    
+                if wifi_temp is not None:
+                    logger.info(f"WiFi Temperature: {wifi_temp:.1f}°C")
+                else:
+                    logger.info("WiFi Temperature: unavailable")
             except Exception as e:
                 logger.error(f"Failed to print receipt: {e}")
                 if display:
                     display.set_pattern("ERROR")
             
             # Wait before next scan
-            logger.info("State: FINISHED (Waiting 10s)")
+            logger.info("State: FINISH (Waiting 20s)")
             if display:
-                display.set_pattern("FINISHED")
+                display.set_speed(8)
+                display.set_pattern("FINISH")
+            time.sleep(20)
             
-            time.sleep(10)
+            # Ensure tags are removed before restarting cycle
+            logger.info("Checking for remaining tags before restarting cycle...")
+            if rfid.has_tags_present():
+                if display:
+                    display.set_pattern("REMOVE_FIGURE")
+                logger.info("Tags detected after finish; waiting for removal...")
+                time.sleep(0.5)
+                
+            while rfid.has_tags_present():
+                logger.info("Tags detected after finish; waiting for removal...")
+                time.sleep(1)
+            
+            logger.info("No tags present; resuming next cycle.")
+            if display:
+                display.clear()
+                display.set_brightness(5)
+                display.set_speed(5)
+                time.sleep(2)
             
     except KeyboardInterrupt:
         logger.info("Service stopped by user.")

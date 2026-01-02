@@ -53,14 +53,24 @@ class DisplayController:
         self.send_command(f"PATTERN {pattern}")
         resp = self.read_response()
         return resp == "OK"
-
-    def set_progress(self, current, total):
+    
+    def set_brightness(self, level):
         """
-        Set progress display.
+        Set brightness level (0-15).
         """
-        self.send_command(f"PROGRESS {current} {total}")
-        # We don't strictly wait for response here to avoid blocking too much
-        return True
+        level = max(0, min(15, level))
+        self.send_command(f"BRIGHT {level}")
+        resp = self.read_response()
+        return resp == "OK"
+    
+    def set_speed(self, speed):
+        """
+        Set animation speed (1-10).
+        """
+        speed = max(1, min(10, speed))
+        self.send_command(f"SPEED {speed}")
+        resp = self.read_response()
+        return resp == "OK"
 
     def clear(self):
         """

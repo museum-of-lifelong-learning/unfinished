@@ -137,6 +137,23 @@ class M5StackUHF:
         
         return tags
     
+    def has_tags_present(self, confirmation_reads=2):
+        """
+        Check if any RFID tags are currently present.
+        
+        Args:
+            confirmation_reads: Number of consecutive reads to confirm (default: 2)
+            
+        Returns:
+            True if tags detected, False otherwise
+        """
+        for _ in range(confirmation_reads):
+            tags = self._polling_once()
+            if tags:
+                return True
+            time.sleep(0.05)
+        return False
+    
     def close(self):
         """Close serial connection"""
         if self.ser.is_open:

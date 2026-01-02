@@ -1,13 +1,12 @@
 import logging
 import random
-from printer import ThermalPrinter
-from receipt_template import ReceiptData, ReceiptRenderer
+from receipt_template import ReceiptData
 from content_generation import generate_content_with_ollama
 from figure_generation import generate_random_figurine
 
 logger = logging.getLogger(__name__)
 
-def print_full_receipt(printer: ThermalPrinter, figurine_id: int, model_name: str = 'qwen2.5:3b'):
+def create_full_receipt( figurine_id: int, model_name: str = 'qwen2.5:3b'):
     """Generate and print the full receipt."""
     logger.info(f"[RECEIPT] Generating receipt for #{figurine_id}")
     
@@ -21,7 +20,7 @@ def print_full_receipt(printer: ThermalPrinter, figurine_id: int, model_name: st
     ]
     quote, author = random.choice(quotes)
     
-    receipt_data = ReceiptData(
+    return ReceiptData(
         image_path=figurine_path,
         image_overlay_text="",
         figurine_number=str(figurine_id),
@@ -37,6 +36,3 @@ def print_full_receipt(printer: ThermalPrinter, figurine_id: int, model_name: st
         footer_quote_author=author,
         footer_thanks=["Vielen Dank!", "Figurati!"]
     )
-    
-    renderer = ReceiptRenderer()
-    renderer.render_to_printer(printer.printer, receipt_data)

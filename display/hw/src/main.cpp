@@ -13,7 +13,7 @@ MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES
 constexpr int DISPLAY_WIDTH = MAX_DEVICES * 8;
 
 // --- STATE & HELPERS -------------------------------------------------------
-enum Pattern { PATTERN_NONE, PATTERN_BORED, PATTERN_THINKING, PATTERN_FINISH, PATTERN_REMOVE_FIGURE };
+enum Pattern { PATTERN_NONE, PATTERN_BORED, PATTERN_THINKING, PATTERN_FINISH, PATTERN_REMOVE_FIGURE, PATTERN_ERROR };
 
 struct Point { int8_t x, y; };
 
@@ -249,6 +249,10 @@ void startPattern(Pattern p) {
       Serial.println("Pattern=REMOVE_FIGURE");
       ps.scrollX = DISPLAY_WIDTH; // Start off-screen right
       break;
+    case PATTERN_ERROR:
+      Serial.println("Pattern=ERROR");
+      ps.var1 = 0; // blink toggle
+      break;
     default:
       Serial.println("Pattern=NONE");
       break;
@@ -347,6 +351,19 @@ void updateRemoveFigure(unsigned long now) {
   }
 }
 
+void updateError(unsigned long now) {
+  int interval = adjustedInterval(200);
+  if (now - ps.lastStep < (unsigned long)interval) return;
+  ps.lastStep = now;
+  ps.var1 = !ps.var1; // blink
+
+  mx.clear();
+  if (ps.var1) {
+    drawCentered("ERROR");
+  }
+  mx.update();
+}
+
 void updatePattern() {
   unsigned long now = millis();
   switch (ps.current) {
@@ -354,6 +371,7 @@ void updatePattern() {
     case PATTERN_THINKING: updateThinking(now); break;
     case PATTERN_FINISH:   updateFinish(now); break;
     case PATTERN_REMOVE_FIGURE: updateRemoveFigure(now); break;
+    case PATTERN_ERROR:    updateError(now); break;
     default: break;
   }
 }
@@ -373,7 +391,7 @@ void handleCommand(const String &line) {
     else if (arg == "FINISH")   startPattern(PATTERN_FINISH);
     else if (arg == "REMOVE_FIGURE") startPattern(PATTERN_REMOVE_FIGURE);
     else if (arg == "PRINTING") startPattern(PATTERN_THINKING); // Reuse thinking for printing
-    else if (arg == "ERROR")    startPattern(PATTERN_BORED);    // Fallback
+    else if (arg == "ERROR")    startPattern(PATTERN_ERROR);
     else {
       Serial.println("ERR UNKNOWN PATTERN");
       return;
@@ -418,6 +436,7 @@ void handleCommand(const String &line) {
       case PATTERN_THINKING: Serial.print("THINKING"); break;
       case PATTERN_FINISH:   Serial.print("FINISH"); break;
       case PATTERN_REMOVE_FIGURE: Serial.print("REMOVE_FIGURE"); break;
+      case PATTERN_ERROR:    Serial.print("ERROR"); break;
       default: Serial.print("NONE"); break;
     }
     Serial.print(" SPEED="); Serial.print(gSpeed);
@@ -426,7 +445,7 @@ void handleCommand(const String &line) {
   }
 
   if (cmd == "HELP") {
-    Serial.println("OK COMMANDS: PATTERN <BORED|THINKING|FINISH|REMOVE_FIGURE>, STOP, CLEAR, SPEED <0-10>, BRIGHT <0-15>, STATUS, HELP");
+    Serial.println("OK COMMANDS: PATTERN <BORED|THINKING|FINISH|REMOVE_FIGURE|ERROR>, STOP, CLEAR, SPEED <0-10>, BRIGHT <0-15>, STATUS, HELP");
     return;
   }
 

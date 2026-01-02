@@ -12,7 +12,6 @@ Utility scripts for testing and setup. Most users won't need these.
 
 - `test_sequences.sh` - Send test digit sequences to the service
 - `run_test_with_permissions.sh` - Run test_service.py with proper permissions
-- `test_tty1_input.sh` - Test sending input to tty1 (deprecated, use tty8)
 
 ## Usage
 

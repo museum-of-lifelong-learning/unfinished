@@ -1,8 +1,5 @@
 #!/bin/bash
-# Wrapper script to run figurine service with tty8 access as user fi
-
-# Make /dev/tty8 readable/writable by user fi temporarily
-chmod 666 /dev/tty8
+# Wrapper script to run figurine service
 
 # Change to service directory
 cd /home/fi/unfinished-figurine/src

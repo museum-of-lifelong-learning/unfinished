@@ -44,15 +44,30 @@ class DisplayController:
 
     def set_pattern(self, pattern):
         """
-        Set display pattern: BORED, THINKING, FINISH
+        Set display pattern: BORED, THINKING, FINISH, PRINTING, ERROR
         """
-        if pattern not in ["BORED", "THINKING", "FINISH"]:
-            logger.error(f"Invalid pattern: {pattern}")
-            return False
+        # Allow more patterns as per service usage
+        if pattern not in ["BORED", "THINKING", "FINISH", "PRINTING", "ERROR"]:
+            logger.warning(f"Unknown pattern requested: {pattern}")
         
         self.send_command(f"PATTERN {pattern}")
         resp = self.read_response()
         return resp == "OK"
+
+    def set_progress(self, current, total):
+        """
+        Set progress display.
+        """
+        self.send_command(f"PROGRESS {current} {total}")
+        # We don't strictly wait for response here to avoid blocking too much
+        return True
+
+    def clear(self):
+        """
+        Clear the display or reset to default state.
+        """
+        self.send_command("CLEAR")
+        return True
 
     def close(self):
         if self.ser.is_open:

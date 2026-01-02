@@ -1,0 +1,8 @@
+# Udev rule for Epson thermal printer
+# Allows users in 'lp' group to access the printer via USB
+
+# Epson TM-T88V/TM-T70II - idVendor=04b8, idProduct=0202
+SUBSYSTEM=="usb", ATTR{idVendor}=="04b8", ATTR{idProduct}=="0202", MODE="0660", GROUP="lp"
+
+# Alternative: Allow all Epson printers
+# SUBSYSTEM=="usb", ATTR{idVendor}=="04b8", MODE="0660", GROUP="lp"

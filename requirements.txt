@@ -1,6 +1,7 @@
 pyserial
 python-escpos
 requests
-openai
 pyusb
 jinja2
+Pillow
+ollama

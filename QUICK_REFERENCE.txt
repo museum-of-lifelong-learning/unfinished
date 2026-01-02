@@ -1,0 +1,75 @@
+╔══════════════════════════════════════════════════════════════╗
+║           FIGURINE SERVICE - QUICK REFERENCE                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+🚀 RUNNING THE SERVICE
+────────────────────────────────────────────────────────────────
+Manual mode (easiest):
+  ./start_manual.sh
+
+Systemd service (auto-start, runs on tty1):
+  sudo systemctl start figurine.service
+  Switch to tty1: Ctrl+Alt+F1 (physical console)
+  View logs: journalctl -u figurine.service -f
+
+📦 SETUP (First Time)
+────────────────────────────────────────────────────────────────
+./install_udev_rules.sh         Setup printer USB access
+./test_service.py               Test all components
+
+For auto-start on boot:
+./setup_service.sh              Install systemd service
+
+🚀 SERVICE COMMANDS
+────────────────────────────────────────────────────────────────
+sudo systemctl start figurine.service      Start service
+sudo systemctl stop figurine.service       Stop service
+sudo systemctl restart figurine.service    Restart service
+sudo systemctl status figurine.service     Check status
+journalctl -u figurine.service -f          View logs (live)
+
+🖨️ PRINTER
+────────────────────────────────────────────────────────────────
+Epson TM-T88V/TM-T70II
+USB: 04b8:0202
+Device: /dev/usb/lp0
+User must be in 'lp' group
+
+🔢 HOW IT WORKS
+────────────────────────────────────────────────────────────────
+1. Service starts → prints test slip
+2. Waits for 6 digits (1-6) from keyboard
+3. Calculates figurine ID (1-46656)
+4. Prints debug slip with digits
+5. Generates text with Ollama (llama3.2)
+6. Prints full receipt
+7. Loops back to step 2
+
+💡 EXAMPLE
+────────────────────────────────────────────────────────────────
+Input:  1-2-3-4-5-6
+Output: Figurine 1865 / 46656
+
+🤖 OLLAMA
+────────────────────────────────────────────────────────────────
+ollama list                 List available models
+ollama run qwen2.5:7b "test" Test it
+systemctl status ollama     Check if running
+
+📁 KEY FILES
+────────────────────────────────────────────────────────────────
+src/figurine_service.py     Main service script
+figurine.service            Systemd service file
+/tmp/figurine_service.log   Service log file
+
+🔍 TROUBLESHOOTING
+────────────────────────────────────────────────────────────────
+Printer: lsusb | grep Epson
+Groups:  groups (must include 'lp')
+Logs:    journalctl -u figurine.service -n 50
+Ollama:  systemctl status ollama
+
+📖 FULL DOCS
+────────────────────────────────────────────────────────────────
+SERVICE_README.md           Complete documentation
+IMPLEMENTATION_SUMMARY.md   What was built & how

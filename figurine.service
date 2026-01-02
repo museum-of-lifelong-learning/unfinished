@@ -1,0 +1,17 @@
+[Unit]
+Description=Figurine Interaction Service
+After=network.target ollama.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/fi/unfinished-figurine
+Environment="PATH=/home/fi/unfinished-figurine/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/fi/unfinished-figurine/run_service_wrapper.sh
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+SyslogIdentifier=figurine-service
+
+[Install]
+WantedBy=multi-user.target

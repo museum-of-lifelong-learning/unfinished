@@ -59,3 +59,7 @@ coverage.xml
 dist/
 build/
 *.egg-info/
+
+# pio
+display/hw/.pio
+display/hw/src/CMakeLists.txt

@@ -44,10 +44,10 @@ class DisplayController:
 
     def set_pattern(self, pattern):
         """
-        Set display pattern: BORED, THINKING, FINISH, PRINTING, ERROR
+        Set display pattern: BORED, THINKING, FINISH, PRINTING, ERROR, REMOVE_FIGURE
         """
         # Allow more patterns as per service usage
-        if pattern not in ["BORED", "THINKING", "FINISH", "PRINTING", "ERROR"]:
+        if pattern not in ["BORED", "THINKING", "FINISH", "PRINTING", "ERROR", "REMOVE_FIGURE"]:
             logger.warning(f"Unknown pattern requested: {pattern}")
         
         self.send_command(f"PATTERN {pattern}")

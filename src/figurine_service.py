@@ -165,8 +165,8 @@ AI Model:    {OLLAMA_MODEL}
             
             logger.info("Tag Answers:")
             if answers:
-                for key, value in answers.items():
-                    logger.info(f"  {key}: {value}")
+                for ans in answers:
+                    logger.info(f"  - {ans}")
             else:
                 logger.info("  No matching answer found for these tags.")
             

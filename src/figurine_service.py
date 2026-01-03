@@ -21,6 +21,8 @@ from printer import auto_detect_printer, ThermalPrinter
 # Import refactored modules
 from figurine_id import calculate_figurine_id, tags_to_digits
 from slip_printing import create_full_receipt
+import logging
+import data_handler
 
 # Setup logging
 root_logger = logging.getLogger()
@@ -44,6 +46,8 @@ logger = logging.getLogger(__name__)
 
 OLLAMA_MODEL = 'qwen2.5:3b'
 
+data_handler = data_handler.FigurineDataHandler()
+
 def get_temperature(zone_path: str, name: str) -> float:
     """Read temperature from a thermal zone."""
     try:
@@ -57,8 +61,6 @@ def get_temperature(zone_path: str, name: str) -> float:
     except Exception as e:
         logger.debug(f"Could not read {name} temperature from {zone_path}: {e}")
     return None
-
-
 
 
 def main():
@@ -158,6 +160,16 @@ AI Model:    {OLLAMA_MODEL}
                 display.set_pattern("THINKING")
             
             tags_list = list(unique_tags.values())
+            
+            answers = data_handler.find_answer_by_tags([tag['epc'] for tag in tags_list])
+            
+            logger.info("Tag Answers:")
+            if answers:
+                for key, value in answers.items():
+                    logger.info(f"  {key}: {value}")
+            else:
+                logger.info("  No matching answer found for these tags.")
+            
             digits = tags_to_digits(tags_list)
             figurine_id = calculate_figurine_id(digits)
             

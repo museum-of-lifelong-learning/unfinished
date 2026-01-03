@@ -5,3 +5,5 @@ pyusb
 jinja2
 Pillow
 ollama
+pandas
+openpyxl

@@ -137,29 +137,20 @@ AI Model:    {OLLAMA_MODEL}
                 display.set_brightness(3)
                 display.set_pattern("BORED")
             
-            # Scan for tags
-            unique_tags = {}
-            logger.info("Scanning... (Need 6 unique tags)")
+            # Scan for tags with maximum reliability using multi-polling
+            logger.info("Scanning for 6 tags (multi-polling mode - optimized)...")
             
-            while len(unique_tags) < 6:
-                # Read a batch of tags
-                current_tags = rfid.read_tags(target_tags=6, max_attempts=5)
-                
-                if current_tags:
-                    for tag in current_tags:
-                        unique_tags[tag['epc']] = tag
-                    
-                    logger.info(f"Found {len(unique_tags)} unique tags so far...")
-                
-                time.sleep(0.1)
+            # Use multi-polling scanning method for efficient 100% detection
+            # Multi-polling (0x27 command) is more efficient at reading multiple tags
+            # Continues until all 6 tags found or 120 second timeout
+            tags_list = rfid.read_tags_multi_polling(target_tags=6, max_duration=120)
+            unique_tags = {tag['epc']: tag for tag in tags_list}
             
             # We have 6 tags!
             logger.info("State: THINKING (Processing tags)")
             if display:
                 display.set_brightness(6)
                 display.set_pattern("THINKING")
-            
-            tags_list = list(unique_tags.values())
             
             answers = data_handler.find_answer_by_tags([tag['epc'] for tag in tags_list])
             

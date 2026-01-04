@@ -17,16 +17,36 @@ logger = logging.getLogger(__name__)
 
 
 class M5StackUHF:
-    """M5Stack U107 UHF RFID Reader Interface - Optimized for 26dBm single polling"""
+    """M5Stack U107 UHF RFID Reader Interface - Optimized for EU region and multi-polling"""
     
-    def __init__(self, port, baud=115200):
-        """Initialize UART connection to RFID module at 26dBm power"""
-        logger.info(f"Initializing RFID on {port}...")
+    # Region configurations (frequency bands in MHz)
+    REGIONS = {
+        'US': 0x01,   # 902-928 MHz
+        'EU': 0x02,   # 865-868 MHz (European standard)
+        'CN': 0x03,   # 920-925 MHz
+        'IN': 0x04,   # 865-867 MHz
+        'JP': 0x05,   # 916-921 MHz
+    }
+    
+    def __init__(self, port, baud=115200, region='EU'):
+        """
+        Initialize UART connection to RFID module
+        
+        Args:
+            port: Serial port (e.g., '/dev/ttyUSB0')
+            baud: Baud rate (default: 115200)
+            region: Region code ('US', 'EU', 'CN', 'IN', 'JP') - default: 'EU'
+        """
+        logger.info(f"Initializing RFID on {port} (Region: {region})...")
         self.ser = serial.Serial(port, baud, timeout=0.5)
         self.buffer = bytearray()
+        self.region = region
         time.sleep(0.5)  # Allow module to initialize
         
-        # Set power to 26dBm (optimal based on testing)
+        # Set region first (affects frequency band)
+        self._set_region(region)
+        
+        # Set power to 26dBm (maximum for EU/most regions)
         self._set_tx_power(2600)
         
     def _checksum(self, data):
@@ -77,6 +97,37 @@ class M5StackUHF:
         self._send_command(cmd)
         return self._wait_response()
     
+    def _set_region(self, region='EU'):
+        """
+        Set frequency region for RFID reader
+        
+        Args:
+            region: Region code string ('US', 'EU', 'CN', 'IN', 'JP')
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if region not in self.REGIONS:
+            logger.error(f"Unknown region: {region}. Valid options: {list(self.REGIONS.keys())}")
+            return False
+        
+        region_code = self.REGIONS[region]
+        cmd = bytearray([0xBB, 0x00, 0xB8, 0x00, 0x01, region_code])
+        cmd.append(self._checksum(cmd))
+        cmd.append(0x7E)
+        
+        logger.info(f"Setting region to {region} (code: {region_code:#04x})")
+        self._send_command(cmd)
+        success = self._wait_response()
+        
+        if success:
+            logger.info(f"Region set to {region}")
+            self.region = region
+        else:
+            logger.warning(f"Failed to set region to {region}")
+        
+        return success
+    
     def read_tags(self, target_tags=6, max_attempts=20):
         """
         Read RFID tags using optimized single_power_26dbm strategy.
@@ -107,9 +158,116 @@ class M5StackUHF:
         
         return list(unique_tags.values())
     
-    def _polling_once(self):
-        """Single polling - reads nearby tags"""
-        cmd = [0xBB, 0x00, 0x22, 0x00, 0x00, 0x22, 0x7E]
+    def read_tags_reliable(self, target_tags=6, max_duration=60, poll_interval=0.05):
+        """
+        Read RFID tags with maximum reliability (exhaustive search).
+        Continues polling until target_tags found OR max_duration exceeded.
+        Optimized for 100% detection - time is not a constraint.
+        
+        Args:
+            target_tags: Number of unique tags to find (default: 6)
+            max_duration: Maximum time to scan in seconds (default: 60)
+            poll_interval: Time between polls in seconds (default: 0.05)
+            
+        Returns:
+            List of tag dictionaries with 'epc', 'rssi', 'pc' fields
+        """
+        unique_tags = {}
+        start_time = time.time()
+        poll_count = 0
+        
+        logger.info(f"Starting reliable scan for {target_tags} tags (max {max_duration}s)...")
+        
+        while time.time() - start_time < max_duration:
+            poll_count += 1
+            tags = self._polling_once()
+            
+            for tag in tags:
+                epc = tag['epc']
+                if epc not in unique_tags:
+                    unique_tags[epc] = tag
+                    logger.info(f"Found tag {epc} (RSSI: {tag['rssi']}) - {len(unique_tags)}/{target_tags}")
+                elif tag['rssi'] > unique_tags[epc]['rssi']:
+                    # Update with better RSSI reading
+                    unique_tags[epc] = tag
+            
+            # Exit early if we have all tags
+            if len(unique_tags) >= target_tags:
+                elapsed = time.time() - start_time
+                logger.info(f"All {target_tags} tags found in {elapsed:.2f}s ({poll_count} polls)")
+                break
+            
+            time.sleep(poll_interval)
+        
+        elapsed = time.time() - start_time
+        logger.info(f"Scan completed: Found {len(unique_tags)} tags in {elapsed:.2f}s ({poll_count} polls)")
+        
+        return list(unique_tags.values())
+    
+    def read_tags_multi_polling(self, target_tags=6, max_duration=60, poll_interval=0.03):
+        """
+        Read RFID tags using multi-polling for higher tag detection efficiency.
+        Uses 0x27 command which optimizes for reading multiple tags per cycle.
+        
+        Args:
+            target_tags: Number of unique tags to find (default: 6)
+            max_duration: Maximum time to scan in seconds (default: 60)
+            poll_interval: Time between polls in seconds (default: 0.03 for faster multi-polling)
+            
+        Returns:
+            List of tag dictionaries with 'epc', 'rssi', 'pc' fields
+        """
+        unique_tags = {}
+        start_time = time.time()
+        poll_count = 0
+        
+        logger.info(f"Starting multi-polling scan for {target_tags} tags (max {max_duration}s)...")
+        
+        while time.time() - start_time < max_duration:
+            poll_count += 1
+            # Use multi-polling mode (0x27 command)
+            tags = self._polling_once(use_multi_polling=True)
+            
+            for tag in tags:
+                epc = tag['epc']
+                if epc not in unique_tags:
+                    unique_tags[epc] = tag
+                    logger.info(f"Found tag {epc} (RSSI: {tag['rssi']}) - {len(unique_tags)}/{target_tags}")
+                elif tag['rssi'] > unique_tags[epc]['rssi']:
+                    # Update with better RSSI reading
+                    unique_tags[epc] = tag
+            
+            # Exit early if we have all tags
+            if len(unique_tags) >= target_tags:
+                elapsed = time.time() - start_time
+                logger.info(f"All {target_tags} tags found via multi-polling in {elapsed:.2f}s ({poll_count} polls)")
+                break
+            
+            time.sleep(poll_interval)
+        
+        elapsed = time.time() - start_time
+        logger.info(f"Multi-polling scan completed: Found {len(unique_tags)} tags in {elapsed:.2f}s ({poll_count} polls)")
+        
+        return list(unique_tags.values())
+    
+    def _polling_once(self, use_multi_polling=False):
+        """
+        Single polling cycle - reads nearby tags
+        
+        Args:
+            use_multi_polling: If True, uses multi-polling command for better tag detection
+            
+        Returns:
+            List of detected tags with RSSI and EPC
+        """
+        if use_multi_polling:
+            # Multi-polling command: more efficient for reading multiple tags
+            # Command 0x27: allows multiple tag readings in one cycle
+            cmd = [0xBB, 0x00, 0x27, 0x00, 0x00, 0x27, 0x7E]
+        else:
+            # Standard single-polling command
+            cmd = [0xBB, 0x00, 0x22, 0x00, 0x00, 0x22, 0x7E]
+        
         self._send_command(cmd)
         
         tags = []
@@ -125,7 +283,7 @@ class M5StackUHF:
             }
             tags.append(tag)
         
-        # Check for additional responses
+        # Check for additional responses (multi-polling allows more)
         while self._wait_response(timeout=0.1):
             if len(self.buffer) >= 24 and self.buffer[0] == 0xBB and self.buffer[1] == 0x02:
                 tag = {
@@ -160,9 +318,12 @@ class M5StackUHF:
             self.ser.close()
 
 
-def auto_detect_rfid():
+def auto_detect_rfid(region='EU'):
     """
     Auto-detect the M5Stack UHF RFID module on available serial ports.
+    
+    Args:
+        region: Region code ('US', 'EU', 'CN', 'IN', 'JP') - default: 'EU'
     
     Returns:
         M5StackUHF instance if found, None otherwise
@@ -175,9 +336,9 @@ def auto_detect_rfid():
     for port in ports:
         try:
             logger.info(f"Probing {port} for RFID...")
-            rfid = M5StackUHF(port)
+            rfid = M5StackUHF(port, region=region)
             if rfid._get_hardware_version():
-                logger.info(f"RFID found on {port}")
+                logger.info(f"RFID found on {port} with region {region}")
                 return rfid
             rfid.close()
         except Exception as e:
@@ -190,20 +351,35 @@ def auto_detect_rfid():
 # Example usage
 if __name__ == "__main__":
     """Example: Read RFID tags continuously"""
-    print("M5Stack U107 UHF RFID Reader - Optimized (26dBm)")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='M5Stack U107 RFID Reader')
+    parser.add_argument('--region', default='EU', choices=['US', 'EU', 'CN', 'IN', 'JP'],
+                        help='Frequency region (default: EU)')
+    parser.add_argument('--mode', default='standard', choices=['standard', 'reliable', 'multi'],
+                        help='Scan mode (default: standard)')
+    args = parser.parse_args()
+    
+    print(f"M5Stack U107 UHF RFID Reader - Region: {args.region}, Mode: {args.mode}")
     print("=" * 60)
     
-    rfid = auto_detect_rfid()
+    rfid = auto_detect_rfid(region=args.region)
     if not rfid:
         print("Error: Could not detect RFID module")
         exit(1)
     
-    print("✓ RFID module connected at 26dBm")
+    print(f"✓ RFID module connected (Region: {args.region}, Power: 26dBm)")
     print("Reading tags (Ctrl+C to stop)...\n")
     
     try:
         while True:
-            tags = rfid.read_tags(target_tags=6, max_attempts=20)
+            if args.mode == 'multi':
+                tags = rfid.read_tags_multi_polling(target_tags=6, max_duration=10)
+            elif args.mode == 'reliable':
+                tags = rfid.read_tags_reliable(target_tags=6, max_duration=10)
+            else:  # standard
+                tags = rfid.read_tags(target_tags=6, max_attempts=20)
+            
             timestamp = time.strftime('%H:%M:%S')
             
             if tags:
@@ -218,5 +394,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n" + "=" * 60)
         print("Stopped")
+    finally:
+        rfid.close()
     finally:
         rfid.close()

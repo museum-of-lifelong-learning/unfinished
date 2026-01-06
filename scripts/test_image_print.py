@@ -8,7 +8,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from printer import ThermalPrinter
+from printer_controller import PrinterController
 from PIL import Image
 
 
@@ -40,7 +40,7 @@ def main():
     # Initialize printer
     connection_type = 'usb'
     print(f"Initializing printer with connection_type='{connection_type}'")
-    printer = ThermalPrinter(connection_type=connection_type)
+    printer = PrinterController(connection_type=connection_type)
     
     # Load and resize image to fit paper
     img = Image.open(image_path).convert('RGB')

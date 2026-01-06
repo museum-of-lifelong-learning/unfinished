@@ -17,7 +17,7 @@ from collections import defaultdict
 # Add src module to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from rfid_reader import auto_detect_rfid, M5StackUHF
+from rfid_controller import auto_detect_rfid, M5StackUHF
 
 # Setup logging
 log_dir = Path('/tmp/rfid_diagnostics')

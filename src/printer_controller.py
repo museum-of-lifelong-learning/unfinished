@@ -4,7 +4,7 @@ import time
 import glob
 import serial
 
-class ThermalPrinter:
+class PrinterController:
     def __init__(self, connection_type='dummy', **kwargs):
         """
         Initialize the printer.
@@ -116,7 +116,7 @@ def auto_detect_printer():
     try:
         # We try to initialize the USB printer. 
         # ThermalPrinter catches exceptions and sets self.printer to Dummy if it fails.
-        printer = ThermalPrinter(connection_type='usb', idVendor=0x04b8, idProduct=0x0202)
+        printer = PrinterController(connection_type='usb', idVendor=0x04b8, idProduct=0x0202)
         if not isinstance(printer.printer, Dummy):
             print("USB Printer detected")
             return printer
@@ -159,7 +159,7 @@ def auto_detect_printer():
             
             if found:
                 print(f"Printer detected on {port}")
-                return ThermalPrinter(connection_type='serial', dev=port, baudrate=9600)
+                return PrinterController(connection_type='serial', dev=port, baudrate=9600)
                 
         except Exception as e:
             pass
@@ -168,5 +168,5 @@ def auto_detect_printer():
 
 if __name__ == "__main__":
     # Test with Dummy printer
-    printer = ThermalPrinter(connection_type='dummy')
+    printer = PrinterController(connection_type='dummy')
     printer.print_test_slip()

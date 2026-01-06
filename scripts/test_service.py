@@ -18,10 +18,10 @@ test_results = {}
 # Test 1: Import dependencies
 print("1. Testing imports...")
 try:
-    from printer import ThermalPrinter, auto_detect_printer
+    from printer_controller import PrinterController, auto_detect_printer
     from receipt_template import ReceiptData, ReceiptRenderer
     from display_controller import auto_detect_display
-    from rfid_reader import auto_detect_rfid
+    from rfid_controller import auto_detect_rfid
     import ollama
     print("   ✓ All imports successful")
     test_results["Imports"] = "OK"
@@ -64,7 +64,7 @@ if printer:
 else:
     print("   ⚠ Printer NOT detected, using Dummy")
     test_results["Printer"] = "DUMMY"
-    printer = ThermalPrinter(connection_type='dummy')
+    printer = PrinterController(connection_type='dummy')
 
 # Test 3: Calculate figurine ID
 print("\n3. Testing figurine ID calculation...")

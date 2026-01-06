@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import logging
-from data_handler import FigurineDataHandler
+from data_service import DataService
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -31,7 +31,7 @@ def main():
     print()
     
     # Initialize data handler
-    handler = FigurineDataHandler(excel_path="assets/Unfinished_data_collection.xlsx")
+    handler = DataService(excel_path="assets/Unfinished_data_collection.xlsx")
     print()
     
     # Search for tags

@@ -9,7 +9,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from printer import ThermalPrinter
+from printer_controller import PrinterController
 from receipt_template import ReceiptData, ReceiptRenderer
 
 
@@ -54,7 +54,7 @@ def main():
     # Initialize printer (USB for real hardware, 'dummy' for testing)
     connection_type = 'usb'
     print(f"Initializing printer with connection_type='{connection_type}'")
-    printer = ThermalPrinter(connection_type=connection_type)
+    printer = PrinterController(connection_type=connection_type)
     
     # Initialize renderer
     renderer = ReceiptRenderer()

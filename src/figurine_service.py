@@ -7,22 +7,19 @@ Orchestrates RFID Reader, LED Display, and Thermal Printer.
 import sys
 import time
 import logging
-import os
 import argparse
-from pathlib import Path
-from receipt_template import ReceiptData, ReceiptRenderer
+from temperature_service import log_temperatures
+from receipt_template import ReceiptRenderer
 
 # Add rfid module to path
-from rfid_reader import auto_detect_rfid, M5StackUHF
-
-from display_controller import auto_detect_display, DisplayController
-from printer import auto_detect_printer, ThermalPrinter
+from rfid_controller import auto_detect_rfid
+from display_controller import auto_detect_display
+from printer_controller import auto_detect_printer, PrinterController
 
 # Import refactored modules
-from figurine_id import calculate_figurine_id, tags_to_digits
 from slip_printing import create_full_receipt
 import logging
-import data_handler
+import data_service
 
 # Setup logging
 root_logger = logging.getLogger()
@@ -46,22 +43,7 @@ logger = logging.getLogger(__name__)
 
 OLLAMA_MODEL = 'qwen2.5:3b'
 
-data_handler = data_handler.FigurineDataHandler()
-
-def get_temperature(zone_path: str, name: str) -> float:
-    """Read temperature from a thermal zone."""
-    try:
-        with open(zone_path, "r") as f:
-            raw = f.read().strip()
-        value = float(raw)
-        temp_c = value / 1000.0 if value > 200 else value
-        if -30.0 < temp_c < 120.0:
-            return temp_c
-        logger.debug(f"Discarding out-of-range {name} temp from {zone_path}: {temp_c}C (raw={raw})")
-    except Exception as e:
-        logger.debug(f"Could not read {name} temperature from {zone_path}: {e}")
-    return None
-
+data_service = data_service.DataService()
 
 def main():
     # Parse command line arguments
@@ -97,7 +79,7 @@ def main():
         logger.info("✓ Printer detected")
     else:
         logger.info("! Printer not detected, using Dummy")
-        printer = ThermalPrinter(connection_type='dummy')
+        printer = PrinterController(connection_type='dummy')
 
     # Print status to console/log
     rfid_status = 'CONNECTED' if rfid else 'MISSING'
@@ -144,7 +126,6 @@ AI Model:    {OLLAMA_MODEL}
             # Multi-polling (0x27 command) is more efficient at reading multiple tags
             # Continues until all 6 tags found or 120 second timeout
             tags_list = rfid.read_tags_multi_polling(target_tags=6, max_duration=120)
-            unique_tags = {tag['epc']: tag for tag in tags_list}
             
             # We have 6 tags!
             logger.info("State: THINKING (Processing tags)")
@@ -152,27 +133,36 @@ AI Model:    {OLLAMA_MODEL}
                 display.set_brightness(6)
                 display.set_pattern("THINKING")
             
-            answers = data_handler.find_answer_by_tags([tag['epc'] for tag in tags_list])
+            answers = data_service.find_answer_by_tags([tag['epc'] for tag in tags_list])
             
             logger.info("Tag Answers:")
             if answers:
                 for ans in answers:
-                    logger.info(f"  - {ans}")
+                    answer_id = ans.get('Antwort_ID', 'Unknown')
+                    question_id = ans.get('Frage_ID', 'Unknown')
+                    logger.info(f"  - {question_id}: {answer_id}")
             else:
                 logger.info("  No matching answer found for these tags.")
             
-            digits = tags_to_digits(tags_list)
-            figurine_id = calculate_figurine_id(digits)
+            # Calculate unique figurine ID based on answer set
+            figurine_id = data_service.calculate_answer_set_id(answers)
             
-            logger.info(f"Tags converted to digits: {digits}")
+            if figurine_id is None:
+                logger.error("Failed to calculate figurine ID, using fallback")
+                # Fallback to random ID if calculation fails
+                import random
+                figurine_id = random.randint(1, 27000)
+            
             logger.info(f"Calculated Figurine ID: {figurine_id}")
+            total_possible = data_service.get_total_unique_ids()
+            logger.info(f"Total possible unique IDs: {total_possible}")
             
             # Generate and Print Receipt
             logger.info("State: PRINTING")
             if display:
                 display.set_pattern("PRINTING")
             
-            receipt_data = create_full_receipt(figurine_id, model_name=OLLAMA_MODEL)
+            receipt_data = create_full_receipt(figurine_id, answers=answers, data_handler_obj=data_service, model_name=OLLAMA_MODEL)
             
             try:
                 if args.no_print:
@@ -183,20 +173,9 @@ AI Model:    {OLLAMA_MODEL}
                     renderer.render_to_printer(printer.printer, receipt_data)
 
                     logger.info("Receipt printed successfully.")
-                
-                # Log temperatures
-                cpu_temp = get_temperature("/sys/class/thermal/thermal_zone2/temp", "CPU")
-                wifi_temp = get_temperature("/sys/class/thermal/thermal_zone1/temp", "WiFi")
-                
-                if cpu_temp is not None:
-                    logger.info(f"CPU Temperature: {cpu_temp:.1f}°C")
-                else:
-                    logger.info("CPU Temperature: unavailable")
                     
-                if wifi_temp is not None:
-                    logger.info(f"WiFi Temperature: {wifi_temp:.1f}°C")
-                else:
-                    logger.info("WiFi Temperature: unavailable")
+                    log_temperatures()                
+
             except Exception as e:
                 logger.error(f"Failed to print receipt: {e}")
                 if display:

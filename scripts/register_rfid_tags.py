@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent src directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from rfid_reader import auto_detect_rfid
+from rfid_controller import auto_detect_rfid
 import pandas as pd
 
 # Excel file path

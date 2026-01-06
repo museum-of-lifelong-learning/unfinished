@@ -2,11 +2,45 @@ import logging
 import pandas as pd
 from pathlib import Path
 from typing import Optional, Dict, List
+from collections import Counter
 """
 Data Handler - Reads and processes figurine data from Excel file.
+
+The DataService class provides functionality to:
+- Query answers by RFID tag IDs
+- Query resources by category with weighted matching on:
+  * Mindsets (from all answers)
+  * F05 answer (Bedürfnisse/Needs)
+  * F06 answer (Situation)
+- Calculate unique answer set IDs
+- Retrieve random title words by category
+- Calculate prevalent mindset from answers
 """
 
 logger = logging.getLogger(__name__)
+
+
+def get_prevalent_mindset(answers):
+    """Calculate the most prevalent mindset from answers."""
+    all_mindsets = []
+    if not answers:
+        return None
+    for ans in answers:
+        # Check for 'Mindsets' key (case sensitive matching Excel column)
+        m_str = ans.get('Mindsets')
+        if m_str and isinstance(m_str, str):
+            # Split by comma and strip whitespace
+            parts = [m.strip() for m in m_str.split(',')]
+            all_mindsets.extend(parts)
+            
+    if not all_mindsets:
+        return None
+        
+    # specific logic: if multiple mindsets have same count, pick one? most_common handles it (picks first)
+    counts = Counter(all_mindsets)
+    if not counts:
+        return None
+    return counts.most_common(1)[0][0]
 
 class DataService:
     """Handles reading and querying figurine data from Excel file."""
@@ -21,6 +55,7 @@ class DataService:
         self.excel_path = Path(excel_path)
         self.answers_df = None
         self.titles_df = None
+        self.resources_df = None
         self._load_data()
     
     def _load_data(self):
@@ -46,6 +81,13 @@ class DataService:
                     logger.info(f"Loaded {len(self.titles_df)} titles from 'Beleg_TItel' sheet")
                 except:
                     pass
+
+            # Load the Resources sheet
+            try:
+                self.resources_df = pd.read_excel(self.excel_path, sheet_name='Ressourcen')
+                logger.info(f"Loaded {len(self.resources_df)} resources from Excel file")
+            except Exception as e:
+                logger.warning(f"Could not load 'Ressourcen' sheet: {e}")
 
             logger.debug(f"Available columns: {list(self.answers_df.columns)}")
             
@@ -267,6 +309,202 @@ class DataService:
             
         except Exception as e:
             logger.error(f"Error calculating answer set ID: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+        
+    def _parse_comma_separated_list(self, value: str) -> List[str]:
+        """
+        Parse a comma-separated string into a list of stripped items.
+        
+        Args:
+            value: Comma-separated string
+            
+        Returns:
+            List of stripped string items
+        """
+        if pd.isna(value) or not value:
+            return []
+        return [item.strip() for item in str(value).split(',')]
+    
+    def _calculate_mindsets_score(self, resource_mindsets: str, answer_mindsets: List[str]) -> float:
+        """
+        Calculate matching score between resource mindsets and answer mindsets.
+        
+        Args:
+            resource_mindsets: Comma-separated mindsets from resource row
+            answer_mindsets: List of mindsets from answers
+            
+        Returns:
+            Score between 0 and 1 (percentage of matching mindsets)
+        """
+        if not answer_mindsets:
+            return 0.0
+        
+        resource_set = set(self._parse_comma_separated_list(resource_mindsets))
+        answer_set = set(answer_mindsets)
+        
+        if not resource_set or not answer_set:
+            return 0.0
+        
+        # Calculate Jaccard similarity (intersection / union)
+        intersection = len(resource_set & answer_set)
+        union = len(resource_set | answer_set)
+        
+        return intersection / union if union > 0 else 0.0
+    
+    def _calculate_match_score(self, resource_value: str, target_value: str) -> float:
+        """
+        Calculate matching score for a single attribute (F05 or F06).
+        
+        Args:
+            resource_value: Comma-separated values from resource row
+            target_value: Target value to match
+            
+        Returns:
+            1.0 if target is in resource values, 0.0 otherwise
+        """
+        if not target_value or pd.isna(resource_value):
+            return 0.0
+        
+        resource_list = self._parse_comma_separated_list(resource_value)
+        return 1.0 if target_value in resource_list else 0.0
+    
+    def find_best_resource(
+        self,
+        kategorie: str,
+        answers: List[Dict],
+        mindset_weight: float = 1.0,
+        f05_weight: float = 1.0,
+        f06_weight: float = 1.0
+    ) -> Optional[Dict]:
+        """
+        Find the best matching resource from the Ressourcen sheet based on kategorie
+        and matching mindsets, F05 answer (Bedürfnisse), and F06 answer (Situation).
+        
+        Args:
+            kategorie: The category to filter resources by (e.g., 'Tools & Inspiration')
+            answers: List of answer dictionaries (as returned by find_answer_by_tags)
+            mindset_weight: Weight for mindset matching (default 1.0)
+            f05_weight: Weight for F05 (Bedürfnisse) matching (default 1.0)
+            f06_weight: Weight for F06 (Situation) matching (default 1.0)
+            
+        Returns:
+            Dictionary containing the best matching resource row, or None if no resources found
+        """
+        if self.resources_df is None:
+            logger.error("No resources data loaded")
+            return None
+        
+        if not answers:
+            logger.error("No answers provided")
+            return None
+        
+        try:
+            # Filter resources by kategorie
+            filtered_resources = self.resources_df[
+                self.resources_df['Kategorie'].str.strip().str.lower() == kategorie.strip().lower()
+            ]
+            
+            if filtered_resources.empty:
+                logger.warning(f"No resources found for kategorie: {kategorie}")
+                return None
+            
+            logger.info(f"Found {len(filtered_resources)} resources in kategorie '{kategorie}'")
+            
+            # Extract mindsets from all answers
+            answer_mindsets = []
+            for answer in answers:
+                mindsets = answer.get('Mindsets')
+                if mindsets and not pd.isna(mindsets):
+                    answer_mindsets.extend(self._parse_comma_separated_list(mindsets))
+            
+            # Remove duplicates
+            answer_mindsets = list(set(answer_mindsets))
+            logger.debug(f"Collected mindsets from answers: {answer_mindsets}")
+            
+            # Find F05 and F06 answers
+            f05_answer = None
+            f06_answer = None
+            
+            for answer in answers:
+                frage_id = answer.get('Frage_ID')
+                antwort = answer.get('Antwort')
+                
+                if frage_id == 'F05':
+                    f05_answer = antwort
+                elif frage_id == 'F06':
+                    f06_answer = antwort
+            
+            logger.debug(f"F05 answer (Bedürfnisse): {f05_answer}")
+            logger.debug(f"F06 answer (Situation): {f06_answer}")
+            
+            # Calculate scores for each resource
+            best_score = -1
+            best_resource = None
+            scores = []
+            
+            for idx, resource in filtered_resources.iterrows():
+                # Calculate individual scores
+                mindset_score = self._calculate_mindsets_score(
+                    resource.get('Mindsets', ''),
+                    answer_mindsets
+                )
+                
+                f05_score = self._calculate_match_score(
+                    resource.get('Bedürfnisse', ''),
+                    f05_answer
+                ) if f05_answer else 0.0
+                
+                f06_score = self._calculate_match_score(
+                    resource.get('Situation', ''),
+                    f06_answer
+                ) if f06_answer else 0.0
+                
+                # Calculate weighted total score
+                total_weight = mindset_weight + f05_weight + f06_weight
+                weighted_score = (
+                    mindset_score * mindset_weight +
+                    f05_score * f05_weight +
+                    f06_score * f06_weight
+                ) / total_weight if total_weight > 0 else 0.0
+                
+                scores.append({
+                    'index': idx,
+                    'item': resource.get('Item', ''),
+                    'mindset_score': mindset_score,
+                    'f05_score': f05_score,
+                    'f06_score': f06_score,
+                    'total_score': weighted_score
+                })
+                
+                logger.debug(
+                    f"Resource '{resource.get('Item', '')}': "
+                    f"mindset={mindset_score:.2f}, f05={f05_score:.2f}, "
+                    f"f06={f06_score:.2f}, total={weighted_score:.2f}"
+                )
+                
+                # Track best score
+                if weighted_score > best_score:
+                    best_score = weighted_score
+                    best_resource = resource
+            
+            # If no clear winner (all scores equal), pick the first one
+            if best_resource is None and not filtered_resources.empty:
+                best_resource = filtered_resources.iloc[0]
+                logger.info("All resources scored equally, selecting first resource")
+            
+            if best_resource is not None:
+                logger.info(
+                    f"Selected resource: '{best_resource.get('Item', '')}' "
+                    f"with score {best_score:.2f}"
+                )
+                return best_resource.to_dict()
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error finding best resource: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return None

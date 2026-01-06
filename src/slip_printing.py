@@ -1,37 +1,67 @@
 import logging
-import random
-from pathlib import Path
-from collections import Counter
-from receipt_template import ReceiptData
+import os
+import textwrap
+from PIL import Image
 from content_generation import generate_content_with_ollama
-from figure_generation import generate_figurine
+from generate_figurine import generate_figurine
+from data_service import DataService, get_prevalent_mindset
 
 logger = logging.getLogger(__name__)
 
-def get_prevalent_mindset(answers):
-    """Calculate the most prevalent mindset from answers."""
-    all_mindsets = []
-    if not answers:
-        return None
-    for ans in answers:
-        # Check for 'Mindsets' key (case sensitive matching Excel column)
-        m_str = ans.get('Mindsets')
-        if m_str and isinstance(m_str, str):
-            # Split by comma and strip whitespace
-            parts = [m.strip() for m in m_str.split(',')]
-            all_mindsets.extend(parts)
-            
-    if not all_mindsets:
-        return None
-        
-    # specific logic: if multiple mindsets have same count, pick one? most_common handles it (picks first)
-    counts = Counter(all_mindsets)
-    if not counts:
-        return None
-    return counts.most_common(1)[0][0]
+# Paper width for TM-T88V/TM-T70II profile (80mm paper, 512px at 180dpi)
+PAPER_WIDTH_PX = 512
+CHAR_WIDTH = 42  # Approximate characters per line for standard font
 
-def create_full_receipt(figurine_id: int, answers: list = None, data_handler_obj=None, model_name: str = 'qwen2.5:3b'):
-    """Generate and print the full receipt."""
+def print_scaled_image(image_path: str, printer) -> Image.Image:
+    """
+    Load and resize image to fit paper width.
+    Maintains aspect ratio without cropping height.
+    """
+    img = Image.open(image_path).convert('RGB')
+    
+    # Resize to paper width while maintaining aspect ratio
+    if img.width != PAPER_WIDTH_PX:
+        ratio = PAPER_WIDTH_PX / float(img.width)
+        new_height = int(float(img.height) * ratio)
+        img = img.resize((PAPER_WIDTH_PX, new_height), Image.Resampling.LANCZOS)
+    
+    printer.image(img)
+    
+def print_labeled_section(self, printer, label: str, text: str):
+    """Print a section with a bold label followed by normal text."""
+    printer.set(align='left', bold=True)
+    printer.text(f"{label} ")
+    printer.set(bold=False)
+    
+    # First line includes label, subsequent lines are full width
+    words = text.split()
+    first_line = []
+    remaining_words = []
+    first_line_width = CHAR_WIDTH - len(label) - 1
+    
+    # Build first line
+    current_length = 0
+    for i, word in enumerate(words):
+        test_length = current_length + len(word) + (1 if current_length > 0 else 0)
+        if test_length <= first_line_width:
+            first_line.append(word)
+            current_length = test_length
+        else:
+            remaining_words = words[i:]
+            break
+    
+    # Print first line (already on same line as label)
+    printer.textln(' '.join(first_line))
+    
+    # Print remaining lines with full width
+    if remaining_words:
+        remaining_text = ' '.join(remaining_words)
+        wrapped = textwrap.fill(remaining_text, width=self.char_width)
+        printer.textln(wrapped)
+
+
+def create_full_receipt(printer, figurine_id: int, answers: list, data_service: DataService, model_name: str = 'qwen2.5:3b'):
+    """Generate and print the full receipt directly to the printer."""
     logger.info(f"[RECEIPT] Generating receipt for #{figurine_id}")
     
     svg_list = []
@@ -48,11 +78,11 @@ def create_full_receipt(figurine_id: int, answers: list = None, data_handler_obj
 
     # Generate Title
     title_text = None
-    if data_handler_obj:
-        word1 = data_handler_obj.get_random_title_word('primo')
+    if data_service:
+        word1 = data_service.get_random_title_word('primo')
         # Use mindset if available, otherwise fallback (e.g. random or default)
         category2 = mindset if mindset else 'Explorer'
-        word2 = data_handler_obj.get_random_title_word(category2)
+        word2 = data_service.get_random_title_word(category2)
         
         if word1 and word2 and word1 != "Unknown" and word2 != "Unknown":
             title_text = f"{word1}\n{word2}."
@@ -63,26 +93,55 @@ def create_full_receipt(figurine_id: int, answers: list = None, data_handler_obj
     
     content = generate_content_with_ollama(figurine_id, model_name=model_name)
     
-    quotes = [
-        ("Der Weg ist das Ziel.", "Konfuzius"),
-        ("Sei du selbst die Veränderung.", "Mahatma Gandhi"),
-        ("Courage, dear heart!", "C.S. Lewis"),
-    ]
-    quote, author = random.choice(quotes)
+    # === HEADER: Image ===
+    if figurine_path and os.path.exists(figurine_path):
+        print_scaled_image(figurine_path, printer)
+    printer.ln()
     
-    return ReceiptData(
-        image_path=figurine_path,
-        image_overlay_text="",
-        figurine_number=str(figurine_id),
-        total_count="46 656",
-        body_paragraphs=[content['description']],
-        mighty_question=content['question'],
-        informal_opportunity=content['opportunity'],
-        official_offer=content['offer'],
-        inspiration=content['inspiration'],
-        next_step=content['step'],
-        qr_url="https://figurati.ch",
-        footer_quote=quote,
-        footer_quote_author=author,
-        footer_thanks=["Vielen Dank!", "Figurati!"]
-    )
+    # Figurine number
+    printer.set(align='center')
+    printer.textln(f"Figurina Nr. {figurine_id} / {data_service.get_total_unique_ids()}")
+    printer.ln()
+    
+    
+    # === BODY ===
+    printer.set(align='left')
+    
+    # Body paragraphs
+    if content.get('description'):
+        wrapped = textwrap.fill(content['description'], width=CHAR_WIDTH)
+        printer.textln(wrapped)
+        printer.ln()
+    
+    # Labeled sections (bold labels)
+    categories = {"Tools & Inspiration", "Anlaufstellen & Angebote", "Programm-Empfehlung"}
+    
+    for category in categories:
+        resource_recommendation = data_service.find_best_resource(
+            kategorie=category,
+            answers=answers
+        )
+        print_labeled_section(printer, f"{category}:", resource_recommendation.get('Item'))    
+        printer.ln()
+    
+    
+    # === QR CODE ===
+    qr_url = f"https://figurati.ch/${figurine_id}"
+    printer.set(align='center')
+    printer.qr(qr_url, size=6)
+    printer.ln()
+    
+    
+    # === FOOTER ===
+    printer.set(align='center')
+    
+    printer.textln("Bleib unfertig.")
+    printer.textln("Vielen Dank für deinen Besuch.")    
+    printer.ln()
+    
+    printer.set(align='center', bold=True)
+    printer.textln("Unfinished by Design –")
+    printer.textln("The Museum of Lifelong Learning")
+    printer.ln()
+    
+    printer.cut()

@@ -19,7 +19,7 @@ test_results = {}
 print("1. Testing imports...")
 try:
     from printer_controller import PrinterController, auto_detect_printer
-    from receipt_template import ReceiptData, ReceiptRenderer
+    from slip_printing import ReceiptRenderer
     from display_controller import auto_detect_display
     from rfid_controller import auto_detect_rfid
     import ollama

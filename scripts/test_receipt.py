@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Test script for the receipt template system.
-Prints a full receipt with image overlay, body text, QR code, and footer.
+Test script for the receipt printing system.
+Prints a full receipt using slip_printing module.
 """
 import sys
 import os
@@ -10,11 +10,13 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from printer_controller import PrinterController
-from receipt_template import ReceiptData, ReceiptRenderer
+from slip_printing import ReceiptRenderer
+from PIL import Image
+import textwrap
 
 
 def main():
-    print("=== Receipt Template Test ===")
+    print("=== Receipt Test ===")
     
     # Use the figurine shapes image
     assets_dir = os.path.join(os.path.dirname(__file__), '..', 'assets')
@@ -26,31 +28,6 @@ def main():
     
     print(f"Using image: {image_path}")
     
-    # Create receipt data based on the example template
-    data = ReceiptData(
-        image_path=image_path,
-        image_overlay_text="Die Antwort ist schon da.",
-        figurine_number="5678",
-        total_count="27 000",
-        body_paragraphs=[
-            "Wenn andere schon am Verzweifeln sind, blühst du erst richtig auf. In jeder Erfahrung siehst du eine Chance und schreckst nicht davor zurück, dich Neuem zu stellen und in unbekanntes Gelände vorzudringen. Allerdings muss da schon etwas für dich rausschauen. Ein bisschen Spass, mindestens. Das ist dein Antrieb – nutze ihn weise und inspiriere auch andere damit.",
-            "Das einzige, was dir schlaflose Nächte bereitet, ist die Fülle an Möglichkeiten. Wie bloss soll man da die Nadel im Heuhaufen finden? Die gute Nachricht: Auch wenn sich das manchmal sehr einsam anfühlt – du bist in bester Gesellschaft. Das hier ist für dich."
-        ],
-        mighty_question="Wie treffe ich die richtige Entscheidung?",
-        informal_opportunity="Wer kennt dich am besten? Sprich mit dieser Person. Auch wenn du nicht immer hören willst, was sie zu sagen hat. Aber oft sind genau sie unser wichtigster Spiegel.",
-        official_offer="viamia, berufliche Standortbestimmung für Menschen ab 40. Ein Angebot des Bundes.",
-        inspiration="Beginners, Tom Vanderbilt (Buch)",
-        next_step="Peer-Workshop für Aufsteiger*innen",
-        qr_url="https://youtu.be/dQw4w9WgXcQ?si=NYSaJdGjv3GCtNGD&t=9",
-        footer_quote="Courage, dear heart!",
-        footer_quote_author="C.S. Lewis",
-        footer_thanks=[
-            "Vielen Dank, dass du",
-            "den Status quo hinterfragst.",
-            "Figurati!"
-        ]
-    )
-    
     # Initialize printer (USB for real hardware, 'dummy' for testing)
     connection_type = 'usb'
     print(f"Initializing printer with connection_type='{connection_type}'")
@@ -59,9 +36,53 @@ def main():
     # Initialize renderer
     renderer = ReceiptRenderer()
     
-    # Print!
+    # Print receipt manually
     print("Rendering receipt...")
-    renderer.render_to_printer(printer.printer, data)
+    
+    # Load and print image
+    img = renderer.load_and_scale_image(image_path)
+    printer.printer.image(img)
+    
+    printer.printer.set(align='center')
+    printer.printer.ln()
+    
+    # Figurine number
+    printer.printer.textln("Figurina Nr. 5678 / 27 000")
+    printer.printer.ln()
+    
+    # Body
+    printer.printer.set(align='left')
+    for para in [
+        "Wenn andere schon am Verzweifeln sind, blühst du erst richtig auf. In jeder Erfahrung siehst du eine Chance und schreckst nicht davor zurück, dich Neuem zu stellen und in unbekanntes Gelände vorzudringen.",
+        "Das einzige, was dir schlaflose Nächte bereitet, ist die Fülle an Möglichkeiten. Wie bloss soll man da die Nadel im Heuhaufen finden?"
+    ]:
+        wrapped = textwrap.fill(para, width=42)
+        printer.printer.textln(wrapped)
+        printer.printer.ln()
+    
+    # Labeled sections
+    renderer._print_labeled_section(printer.printer, "Mächtige Frage:", "Wie treffe ich die richtige Entscheidung?")
+    renderer._print_labeled_section(printer.printer, "Informal Opportunity:", "Wer kennt dich am besten? Sprich mit dieser Person.")
+    renderer._print_labeled_section(printer.printer, "Offizielles Angebot:", "viamia, berufliche Standortbestimmung für Menschen ab 40.")
+    renderer._print_labeled_section(printer.printer, "Inspiration:", "Beginners, Tom Vanderbilt (Buch)")
+    renderer._print_labeled_section(printer.printer, "Nächster Schritt:", "Peer-Workshop für Aufsteiger*innen")
+    
+    printer.printer.ln()
+    
+    # QR Code
+    printer.printer.set(align='center')
+    printer.printer.qr("https://figurati.ch", size=6)
+    printer.printer.ln()
+    
+    # Footer
+    printer.printer.textln("«Courage, dear heart!»")
+    printer.printer.textln("C.S. Lewis")
+    printer.printer.ln()
+    
+    for line in ["Vielen Dank!", "Figurati!"]:
+        printer.printer.textln(line)
+    
+    printer.printer.cut()
     
     print("Done!")
 

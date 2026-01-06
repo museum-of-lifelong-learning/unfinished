@@ -9,7 +9,6 @@ import time
 import logging
 import argparse
 from temperature_service import log_temperatures
-from receipt_template import ReceiptRenderer
 
 # Add rfid module to path
 from rfid_controller import auto_detect_rfid
@@ -162,16 +161,12 @@ AI Model:    {OLLAMA_MODEL}
             if display:
                 display.set_pattern("PRINTING")
             
-            receipt_data = create_full_receipt(figurine_id, answers=answers, data_handler_obj=data_service, model_name=OLLAMA_MODEL)
-            
             try:
                 if args.no_print:
                     logger.info("[NO-PRINT MODE] Skipping receipt printing")
                     logger.info(f"Would have printed receipt for Figurine ID: {figurine_id}")
                 else:
-                    renderer = ReceiptRenderer()
-                    renderer.render_to_printer(printer.printer, receipt_data)
-
+                    create_full_receipt(printer.printer, figurine_id, answers=answers, data_service=data_service, model_name=OLLAMA_MODEL)
                     logger.info("Receipt printed successfully.")
                     
                     log_temperatures()                

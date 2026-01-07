@@ -91,7 +91,8 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
     # Generate figurine
     figurine_path = generate_figurine(svg_list, title_text=title_text, figurine_id=figurine_id)
     
-    content = generate_content_with_ollama(figurine_id, model_name=model_name)
+    # Generate personalized content with Ollama
+    content = generate_content_with_ollama(answers, data_service=data_service, model_name=model_name)
     
     # === HEADER: Image ===
     if figurine_path and os.path.exists(figurine_path):
@@ -100,16 +101,21 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
     
     # Figurine number
     printer.set(align='center')
-    printer.textln(f"Figurina Nr. {figurine_id} / {data_service.get_total_unique_ids()}")
+    printer.textln(f"Charakter {figurine_id} / {data_service.get_total_unique_ids()}")
     printer.ln()
     
     
     # === BODY ===
     printer.set(align='left')
     
-    # Body paragraphs
-    if content.get('description'):
-        wrapped = textwrap.fill(content['description'], width=CHAR_WIDTH)
+    # Body paragraphs - two personalized paragraphs from Ollama
+    if content.get('paragraph1'):
+        wrapped = textwrap.fill(content['paragraph1'], width=CHAR_WIDTH)
+        printer.textln(wrapped)
+        printer.ln()
+    
+    if content.get('paragraph2'):
+        wrapped = textwrap.fill(content['paragraph2'], width=CHAR_WIDTH)
         printer.textln(wrapped)
         printer.ln()
     

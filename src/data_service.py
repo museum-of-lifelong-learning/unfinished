@@ -15,6 +15,7 @@ The DataService class provides functionality to:
 - Calculate unique answer set IDs
 - Retrieve random title words by category
 - Calculate prevalent mindset from answers
+- Get complete prompt template text for content generation
 """
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ class DataService:
         self.answers_df = None
         self.titles_df = None
         self.resources_df = None
+        self.prompt_df = None
         self._load_data()
     
     def _load_data(self):
@@ -88,6 +90,14 @@ class DataService:
                 logger.info(f"Loaded {len(self.resources_df)} resources from Excel file")
             except Exception as e:
                 logger.warning(f"Could not load 'Ressourcen' sheet: {e}")
+            
+            # Load the Prompt sheet
+            try:
+                self.prompt_df = pd.read_excel(self.excel_path, sheet_name='Prompt')
+                logger.info(f"Loaded {len(self.prompt_df)} prompt rows from Excel file")
+            except Exception as e:
+                logger.warning(f"Could not load 'Prompt' sheet: {e}")
+                self.prompt_df = None
 
             logger.debug(f"Available columns: {list(self.answers_df.columns)}")
             
@@ -508,3 +518,40 @@ class DataService:
             import traceback
             logger.error(traceback.format_exc())
             return None
+    
+    def get_prompt(self) -> str:
+        """
+        Get the complete prompt template text from the Prompt sheet.
+        
+        All rows from the 'Prompt' column are concatenated with double newlines
+        to form a single prompt template string.
+        
+        Returns:
+            Complete prompt template as a single string, or empty string if not loaded
+        """
+        if self.prompt_df is None:
+            logger.error("No prompt data loaded")
+            return ""
+        
+        try:
+            if 'Prompt' not in self.prompt_df.columns:
+                logger.error("'Prompt' column not found in Prompt sheet")
+                return ""
+            
+            # Get all non-null values from the Prompt column
+            prompt_parts = []
+            for value in self.prompt_df['Prompt']:
+                if pd.notna(value):
+                    prompt_parts.append(str(value).strip())
+            
+            # Join with double newlines for readability
+            prompt_text = '\n\n'.join(prompt_parts)
+            
+            logger.info(f"Loaded prompt template with {len(prompt_parts)} sections, {len(prompt_text)} characters")
+            return prompt_text
+            
+        except Exception as e:
+            logger.error(f"Error getting prompt template: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return ""

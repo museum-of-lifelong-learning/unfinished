@@ -11,97 +11,98 @@ import drawsvg as draw
 # --- Shape drawing functions using drawsvg ---
 # All shapes accept only height value, width is proportional
 
-def draw_semioval(h):
-    """Top-half semi-oval using an Arc"""
-    w = h * 1.0  # Proportional width
-    return draw.Path(fill='white', stroke='black', stroke_width=2).move_to(0, h).arc(w/2, h, w/2, h, 180, 360, cw=False).line_to(w, h).close()
+# --- Image: Level1_Fuss_side.png (Original Reference) ---
 
-def draw_circle(h):
-    """Circle"""
-    w = h * 1.0
-    return draw.Circle(w/2, h/2, h/2, fill='white', stroke='black', stroke_width=2)
+def draw_wide_semioval(h):
+    """Shape 1: Squashed top-half semi-oval"""
+    w = h * 2.5
+    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path.M(0, h).A(w/2, h, 0, 0, 1, w, h).L(w, h).Z()
+    return path
 
-def draw_triangle_up(h):
-    """Triangle pointing up"""
-    w = h * 1.0
-    return draw.Lines(w/2, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_triangle_down(h):
-    """Triangle pointing down"""
-    w = h * 1.0
-    return draw.Lines(w/2, h, w, 0, 0, 0, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_diamond(h):
-    """Square rotated 45 degrees"""
-    w = h * 1.0
-    return draw.Lines(w/2, 0, w, h/2, w/2, h, 0, h/2, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_trapezoid(h):
-    """Trapezoid: top width is 60%, bottom is 100%"""
-    w = h * 1.0
-    return draw.Lines(w*0.2, 0, w*0.8, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_trapezoid_wide(h):
-    """Trapezoid wider at top"""
-    w = h * 1.0
-    return draw.Lines(w*0.15, 0, w*0.85, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_trapezoid_narrow(h):
-    """Trapezoid wider at bottom"""
-    w = h * 1.0
-    return draw.Lines(w*0.35, 0, w*0.65, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_square(h):
-    """Square"""
-    w = h * 1.0
-    size = min(w, h)
-    offset_x = (w - size) / 2
-    return draw.Rectangle(offset_x, 0, size, h, fill='white', stroke='black', stroke_width=2)
-
-def draw_rectangle_tall(h):
-    """Tall rectangle"""
-    w = h * 1.0
-    width = w * 0.4
-    offset_x = (w - width) / 2
-    return draw.Rectangle(offset_x, 0, width, h, fill='white', stroke='black', stroke_width=2)
-
-def draw_rectangle_wide(h):
-    """Wide rectangle"""
-    w = h * 1.0
+def draw_wide_rectangle(h):
+    """Shape 2 & 5: Standard wide rectangle block"""
+    w = h * 2.2
     return draw.Rectangle(0, 0, w, h, fill='white', stroke='black', stroke_width=2)
 
-def draw_oval_horizontal(h):
-    """Horizontal oval/ellipse"""
-    w = h * 1.0
-    cx, cy = w / 2, h / 2
-    rx = w / 2
-    ry = h / 3
-    return draw.Ellipse(cx - rx, cy - ry, 2*rx, 2*ry, fill='white', stroke='black', stroke_width=2)
+def draw_capsule_pill(h):
+    """Shape 3: Flat-sided pill shape (capsule)"""
+    w = h * 2.5
+    return draw.Rectangle(0, 0, w, h, rx=h/2, ry=h/2, fill='white', stroke='black', stroke_width=2)
 
-def draw_oval_vertical(h):
-    """Vertical oval/ellipse"""
-    w = h * 1.0
-    cx, cy = w / 2, h / 2
-    rx = w / 3
-    ry = h / 2
-    return draw.Ellipse(cx - rx, cy - ry, 2*rx, 2*ry, fill='white', stroke='black', stroke_width=2)
+def draw_tapered_trapezoid(h):
+    """Shape 4: Narrow-top trapezoid"""
+    w = h * 2.5
+    return draw.Lines(w*0.35, 0, w*0.65, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
+
+def draw_blocky_trapezoid(h):
+    """Shape 6: Steep-walled trapezoid"""
+    w = h * 2.0
+    return draw.Lines(w*0.1, 0, w*0.9, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
+
+
+# --- Image: New Reference (Stacked & Rounded Elements) ---
+
+def draw_stacked_rectangles(h):
+    """Image 2: A narrow rectangle sitting on a wider rectangle base"""
+    w_base = h * 2.2
+    w_top = w_base * 0.75
+    offset = (w_base - w_top) / 2
+    group = draw.Group()
+    # Bottom part (half height)
+    group.append(draw.Rectangle(0, h/2, w_base, h/2, fill='white', stroke='black', stroke_width=2))
+    # Top part (half height)
+    group.append(draw.Rectangle(offset, 0, w_top, h/2, fill='white', stroke='black', stroke_width=2))
+    return group
+
+def draw_solid_diamond(h):
+    """Image 3 & 4: The dark charcoal diamond shapes"""
+    w = h * 1.2 # Diamonds are slightly taller/narrower than the blocks
+    return draw.Lines(w/2, 0, w, h/2, w/2, h, 0, h/2, close=True, fill='white', stroke='black', stroke_width=2)
+
+def draw_stepped_block(h):
+    """Image 5: The dark stepped base shape"""
+    w = h * 2.2
+    indent = w * 0.15
+    group = draw.Group()
+    # Draws the 'notched' look seen in the dark grey shape
+    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path.M(indent, 0).L(w-indent, 0).L(w-indent, h/2)
+    path.L(w, h/2).L(w, h).L(0, h).L(0, h/2).L(indent, h/2).Z()
+    group.append(path)
+    return group
+
+def draw_sphere_circle(h):
+    """Image 6: The light green spherical shape"""
+    # Note: In your image this is a perfect circle, but it sits slightly above the floor
+    r = h / 2
+    return draw.Circle(r, r, r, fill='white', stroke='black', stroke_width=2)
 
 
 # --- THE MAPPING ---
 SHAPE_MENU = {
-    "semioval": draw_semioval,
-    "circle": draw_circle,
-    "triangle_up": draw_triangle_up,
-    "triangle_down": draw_triangle_down,
-    "diamond": draw_diamond,
-    "trapezoid": draw_trapezoid,
-    "trapezoid_wide": draw_trapezoid_wide,
-    "trapezoid_narrow": draw_trapezoid_narrow,
-    "square": draw_square,
-    "rectangle_tall": draw_rectangle_tall,
-    "rectangle_wide": draw_rectangle_wide,
-    "oval_horizontal": draw_oval_horizontal,
-    "oval_vertical": draw_oval_vertical,
+    "semioval": draw_wide_semioval,
+    "wide_rectangle": draw_wide_rectangle,
+    "capsule_pill": draw_capsule_pill,
+    "tapered_trapezoid": draw_tapered_trapezoid,
+    "blocky_trapezoid": draw_blocky_trapezoid,  
+    "stacked_rectangles": draw_stacked_rectangles,
+    "solid_diamond": draw_solid_diamond,
+    "stepped_block": draw_stepped_block,
+    "sphere_circle": draw_sphere_circle,
+}
+
+# Width ratios for each shape (width = height * ratio)
+SHAPE_WIDTH_RATIOS = {
+    "semioval": 2.5,
+    "wide_rectangle": 2.2,
+    "capsule_pill": 2.5,
+    "tapered_trapezoid": 2.5,
+    "blocky_trapezoid": 2.0,
+    "stacked_rectangles": 2.2,
+    "solid_diamond": 1.2,
+    "stepped_block": 2.2,
+    "sphere_circle": 1.0,  # diameter = height
 }
 
 def generate_figurine(shapes: list, output_path: str = None, title_text: str = None, figurine_id: int = None):
@@ -140,7 +141,15 @@ def generate_figurine(shapes: list, output_path: str = None, title_text: str = N
     
     # Calculate proportional heights for available elements
     num_elements = len(shapes)
-    used_ratios = token_height_ratios[:num_elements] if num_elements <= len(token_height_ratios) else token_height_ratios
+    
+    # Extend ratios if we have more shapes than predefined ratios
+    if num_elements > len(token_height_ratios):
+        # Repeat the pattern or use equal distribution
+        used_ratios = []
+        for i in range(num_elements):
+            used_ratios.append(token_height_ratios[i % len(token_height_ratios)])
+    else:
+        used_ratios = token_height_ratios[:num_elements]
     
     # Calculate figurine width from height (aspect ratio)
     total_ratio = sum(used_ratios)
@@ -162,9 +171,12 @@ def generate_figurine(shapes: list, output_path: str = None, title_text: str = N
         target_height = token_heights[i]
         shape_func = SHAPE_MENU[shape_name]
         
-        # Create group for this shape with centering
-        shape_width = target_height  # shapes have width = height
+        # Calculate actual width for this shape
+        width_ratio = SHAPE_WIDTH_RATIOS.get(shape_name, 2.5)
+        shape_width = target_height * width_ratio
         offset_x = (figurine_width - shape_width) / 2
+        
+        # Create group for this shape with centering
         group = draw.Group(transform=f'translate({offset_x}, {current_y})')
         shape = shape_func(target_height)
         group.append(shape)

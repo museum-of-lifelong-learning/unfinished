@@ -396,5 +396,3 @@ if __name__ == "__main__":
         print("Stopped")
     finally:
         rfid.close()
-    finally:
-        rfid.close()

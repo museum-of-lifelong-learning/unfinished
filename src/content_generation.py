@@ -1,43 +1,75 @@
 import time
 import logging
 import ollama
+from typing import List, Dict
+from data_service import DataService, get_prevalent_mindset
 
 logger = logging.getLogger(__name__)
 
 OLLAMA_MODEL = 'qwen2.5:3b'
 
-def generate_content_with_ollama(figurine_id: int, model_name: str = OLLAMA_MODEL) -> dict:
+def generate_content_with_ollama(answers: List[Dict], data_service: DataService, model_name: str = OLLAMA_MODEL) -> dict:
     """
-    Generate complete receipt content using Ollama.
-    Returns dict with all fields for the receipt.
+    Generate personalized two-paragraph content using Ollama based on user answers.
+    
+    Args:
+        answers: List of answer dictionaries from the user's tag selection
+        data_service: DataService instance to access the prompt template
+        model_name: Ollama model to use for generation
+        
+    Returns:
+        Dictionary with 'paragraph1' and 'paragraph2' keys containing the generated text
     """
-    logger.info(f"[OLLAMA] Starting content generation for figurine {figurine_id} using model {model_name}...")
+    logger.info(f"[OLLAMA] Starting content generation using model {model_name}...")
     start_time = time.time()
     
     try:
-        # Optimized prompt for faster generation
-        prompt = f"""Erstelle einen kurzen, inspirierenden deutschen Text für Figurine #{figurine_id}.
+        # Get the prompt template from data service
+        prompt_template = data_service.get_prompt()
+        
+        if not prompt_template:
+            logger.error("[OLLAMA] Failed to load prompt template")
+            raise ValueError("Prompt template not available")
+        
+        # Extract relevant information from answers
+        mindset = get_prevalent_mindset(answers)
+        need = None  # F05 - Bedürfnisse
+        context = None  # F06 - Situation
+        
+        for answer in answers:
+            frage_id = answer.get('Frage_ID')
+            antwort = answer.get('Antwort')
+            
+            if frage_id == 'F05':
+                need = antwort
+            elif frage_id == 'F06':
+                context = antwort
+        
+        # Build the complete prompt with user data
+        user_input = f"""
+<Mindset>: {mindset if mindset else 'Nicht definiert'}
+<Need>: {need if need else 'Nicht definiert'}
+<Context>: {context if context else 'Nicht definiert'}
+"""
+        
+        full_prompt = f"""{prompt_template}
 
-Format (genau diese Struktur):
-BESCHREIBUNG: [2-3 kurze Sätze über Persönlichkeit und Stärken]
-FRAGE: [Eine tiefgründige Frage]
-CHANCE: [Ein informeller Vorschlag]
-ANGEBOT: [Ein offizielles Angebot/Programm]
-INSPIRATION: [Buch, Film oder Zitat]
-SCHRITT: [Konkreter nächster Schritt]
+{user_input}
 
-Kurz und prägnant!"""
-
+Generiere jetzt die beiden Absätze (jeweils max. 400 Zeichen):"""
+        
+        logger.info(f"[OLLAMA] User data - Mindset: {mindset}, Need: {need}, Context: {context}")
         logger.info("[OLLAMA] Sending request to Ollama API...")
+        
         response = ollama.chat(
             model=model_name,
-            messages=[{'role': 'user', 'content': prompt}],
+            messages=[{'role': 'user', 'content': full_prompt}],
             options={
-                'temperature': 0.7,
-                'num_predict': 150,
-                'top_k': 20,
-                'top_p': 0.8,
-                'num_ctx': 512,
+                'temperature': 0.8,
+                'num_predict': 512,
+                'top_k': 40,
+                'top_p': 0.9,
+                'num_ctx': 8192,
             }
         )
         
@@ -46,49 +78,42 @@ Kurz und prägnant!"""
         
         content = response['message']['content'].strip()
         
-        # Parse the response
-        lines = content.split('\n')
-        parsed = {
-            'description': '',
-            'question': '',
-            'opportunity': '',
-            'offer': '',
-            'inspiration': '',
-            'step': ''
+        # Split into paragraphs (assuming Ollama returns two distinct paragraphs)
+        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
+        
+        # Ensure we have exactly 2 paragraphs, use fallback if needed
+        if len(paragraphs) >= 2:
+            paragraph1 = paragraphs[0]
+            paragraph2 = paragraphs[1]
+        elif len(paragraphs) == 1:
+            # Try splitting by single newline if double newline didn't work
+            parts = [p.strip() for p in paragraphs[0].split('\n') if p.strip()]
+            if len(parts) >= 2:
+                paragraph1 = parts[0]
+                paragraph2 = ' '.join(parts[1:])
+            else:
+                paragraph1 = paragraphs[0]
+                paragraph2 = "Das hier ist für dich:"
+        else:
+            logger.warning("[OLLAMA] No valid paragraphs in response, using fallback")
+            paragraph1 = "Du bringst Bewegung in Räume. Dein Blick macht Wandel möglich."
+            paragraph2 = "Vielleicht ist da was für dich dabei."
+        
+        logger.info(f"[OLLAMA] Generated paragraph 1: {len(paragraph1)} chars")
+        logger.info(f"[OLLAMA] Generated paragraph 2: {len(paragraph2)} chars")
+        
+        return {
+            'paragraph1': paragraph1,
+            'paragraph2': paragraph2
         }
-        
-        for line in lines:
-            line = line.strip()
-            if line.startswith('BESCHREIBUNG:'):
-                parsed['description'] = line.replace('BESCHREIBUNG:', '').strip()
-            elif line.startswith('FRAGE:'):
-                parsed['question'] = line.replace('FRAGE:', '').strip()
-            elif line.startswith('CHANCE:'):
-                parsed['opportunity'] = line.replace('CHANCE:', '').strip()
-            elif line.startswith('ANGEBOT:'):
-                parsed['offer'] = line.replace('ANGEBOT:', '').strip()
-            elif line.startswith('INSPIRATION:'):
-                parsed['inspiration'] = line.replace('INSPIRATION:', '').strip()
-            elif line.startswith('SCHRITT:'):
-                parsed['step'] = line.replace('SCHRITT:', '').strip()
-        
-        # Fill defaults
-        if not parsed['description']: parsed['description'] = "Du bist einzigartig."
-        if not parsed['question']: parsed['question'] = "Was ist dein Ziel?"
-        if not parsed['opportunity']: parsed['opportunity'] = "Sprich mit Freunden."
-        if not parsed['offer']: parsed['offer'] = "Besuche figurati.ch"
-        if not parsed['inspiration']: parsed['inspiration'] = "Carpe Diem"
-        if not parsed['step']: parsed['step'] = "Atme tief durch."
-        
-        return parsed
         
     except Exception as e:
         logger.error(f"[OLLAMA] Failed to generate content: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
+        # Return fallback content
         return {
-            'description': "Die Zukunft gehört denen, die an ihre Träume glauben.",
-            'question': "Was ist dein nächster Schritt?",
-            'opportunity': "Teile deine Vision.",
-            'offer': "Beratung bei figurati.ch",
-            'inspiration': "Der Alchemist",
-            'step': "Sei dankbar."
+            'paragraph1': "Du bringst Bewegung in Räume, in denen andere noch zögern. Dein neugieriger Blick macht Wandel möglich.",
+            'paragraph2': "Der Wunsch nach Klarheit ist ein guter Anfang – er verbindet dich mit vielen, die gerade Neues erfinden. Das hier ist für dich:"
         }

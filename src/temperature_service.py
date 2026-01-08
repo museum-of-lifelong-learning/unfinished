@@ -1,4 +1,6 @@
-from figurine_service import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_temperature(zone_path: str, name: str) -> float:
     """Read temperature from a thermal zone."""

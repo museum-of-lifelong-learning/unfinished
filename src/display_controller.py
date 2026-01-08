@@ -88,7 +88,8 @@ def auto_detect_display():
     Auto-detect the LED Display ESP32 on available serial ports.
     Sends 'STATUS' and expects 'OK PATTERN=...'
     """
-    ports = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
+    # Try ACM ports first (ESP32 is typically on ttyACM*)
+    ports = sorted(glob.glob('/dev/ttyACM*')) + sorted(glob.glob('/dev/ttyUSB*'))
     
     if not ports:
         return None

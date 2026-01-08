@@ -328,7 +328,8 @@ def auto_detect_rfid(region='EU'):
     Returns:
         M5StackUHF instance if found, None otherwise
     """
-    ports = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
+    # Try USB ports first (RFID is typically on ttyUSB*)
+    ports = sorted(glob.glob('/dev/ttyUSB*')) + sorted(glob.glob('/dev/ttyACM*'))
     
     if not ports:
         return None

@@ -8,9 +8,9 @@ import sys
 import time
 import logging
 import argparse
-from temperature_service import log_temperatures
 
-# Add rfid module to path
+# Add Service module imports
+from temperature_service import log_temperatures
 from rfid_controller import auto_detect_rfid
 from display_controller import auto_detect_display
 from printer_controller import auto_detect_printer, PrinterController
@@ -58,6 +58,13 @@ def main():
     # 1. Auto-detect devices
     logger.info("Detecting devices...")
     
+    # Display
+    display = auto_detect_display()
+    if display:
+        logger.info("✓ Display detected")
+    else:
+        logger.error("✗ Display NOT detected")    
+    
     # RFID
     rfid = auto_detect_rfid()
     if rfid:
@@ -65,13 +72,7 @@ def main():
     else:
         logger.error("✗ RFID Reader NOT detected")
         
-    # Display
-    display = auto_detect_display()
-    if display:
-        logger.info("✓ Display detected")
-    else:
-        logger.error("✗ Display NOT detected")
-        
+
     # Printer
     printer = auto_detect_printer()
     if printer:

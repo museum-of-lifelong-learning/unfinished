@@ -46,13 +46,20 @@ def get_prevalent_mindset(answers):
 class DataService:
     """Handles reading and querying figurine data from Excel file."""
     
-    def __init__(self, excel_path: str = "../assets/Unfinished_data_collection.xlsx"):
+    def __init__(self, excel_path: str = None):
         """
         Initialize the data handler.
         
         Args:
-            excel_path: Path to the Excel file containing figurine data
+            excel_path: Path to the Excel file containing figurine data.
+                       If None, automatically finds the file relative to project root.
         """
+        if excel_path is None:
+            # Auto-detect: try multiple possible locations
+            current_file = Path(__file__)
+            project_root = current_file.parent.parent  # Go up from src/ to project root
+            excel_path = project_root / "assets" / "Unfinished_data_collection.xlsx"
+        
         self.excel_path = Path(excel_path)
         self.answers_df = None
         self.titles_df = None

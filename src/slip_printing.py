@@ -27,7 +27,7 @@ def print_scaled_image(image_path: str, printer) -> Image.Image:
     
     printer.image(img)
     
-def print_labeled_section(self, printer, label: str, text: str):
+def print_labeled_section(printer, label: str, text: str):
     """Print a section with a bold label followed by normal text."""
     printer.set(align='left', bold=True)
     printer.text(f"{label} ")
@@ -56,7 +56,7 @@ def print_labeled_section(self, printer, label: str, text: str):
     # Print remaining lines with full width
     if remaining_words:
         remaining_text = ' '.join(remaining_words)
-        wrapped = textwrap.fill(remaining_text, width=self.char_width)
+        wrapped = textwrap.fill(remaining_text, width=CHAR_WIDTH)
         printer.textln(wrapped)
 
 

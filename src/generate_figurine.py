@@ -4,7 +4,6 @@ Generate PNG images with geometric shapes similar to figurine stacking.
 Creates 6 shapes stacked vertically, randomly chosen from a pool of shapes.
 """
 from pathlib import Path
-import random
 import drawsvg as draw
 
 
@@ -159,7 +158,7 @@ def generate_figurine(shapes: list, output_path: str = None, title_text: str = N
     d = draw.Drawing(figurine_width, figurine_height, origin=(0, 0), displayMode='inline')
     
     # Add white background
-    #d.append(draw.Rectangle(0, 0, figurine_width, figurine_height, fill='white'))
+    d.append(draw.Rectangle(0, 0, figurine_width, figurine_height, fill='white'))
     
     # Add each shape
     current_y = 0

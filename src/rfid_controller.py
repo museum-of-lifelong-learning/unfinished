@@ -128,13 +128,56 @@ class M5StackUHF:
         
         return success
     
-    def read_tags(self, target_tags=6, max_attempts=20):
+    def _silence_tag(self, epc_hex):
+        """
+        Temporarily silence a tag (tell it to stop responding).
+        This allows other tags to be heard more clearly.
+        Tag will respond again after power cycle or timeout.
+        
+        Args:
+            epc_hex: EPC code as hex string (e.g., 'E28069150000700B3E03D860')
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        # Convert hex string to bytes
+        epc_bytes = bytes.fromhex(epc_hex)
+        epc_len = len(epc_bytes)
+        
+        # Command 0x24: Set tag to quiet/silent state
+        # This is a Select + Quiet command that masks the tag temporarily
+        cmd = bytearray([0xBB, 0x00, 0x24, 0x00, epc_len])
+        cmd.extend(epc_bytes)
+        cmd.append(self._checksum(cmd))
+        cmd.append(0x7E)
+        
+        logger.debug(f"Silencing tag {epc_hex}")
+        self._send_command(cmd)
+        return self._wait_response(timeout=0.3)
+    
+    def _reset_inventory(self):
+        """
+        Reset inventory session - clears all silenced tags.
+        All tags will respond again after this command.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        # Command 0x29: Reset inventory (clears tag masking)
+        cmd = [0xBB, 0x00, 0x29, 0x00, 0x00, 0x29, 0x7E]
+        
+        logger.debug("Resetting inventory (clearing silenced tags)")
+        self._send_command(cmd)
+        return self._wait_response(timeout=0.3)
+    
+    def read_tags(self, target_tags=6, max_attempts=20, use_anti_collision=False):
         """
         Read RFID tags using optimized single_power_26dbm strategy.
         
         Args:
             target_tags: Number of unique tags to find (default: 6)
             max_attempts: Maximum polling attempts (default: 20)
+            use_anti_collision: If True, silence tags after reading to detect weaker tags (default: False)
             
         Returns:
             List of tag dictionaries with 'epc', 'rssi', 'pc' fields
@@ -142,19 +185,41 @@ class M5StackUHF:
         unique_tags = {}
         attempt = 0
         
+        mode_str = "anti-collision" if use_anti_collision else "standard"
+        logger.info(f"Starting {mode_str} scan for {target_tags} tags (max {max_attempts} attempts)...")
+        
+        # Reset inventory at start if using anti-collision
+        if use_anti_collision:
+            self._reset_inventory()
+        
         while len(unique_tags) < target_tags and attempt < max_attempts:
             attempt += 1
             tags = self._polling_once()
             
+            new_tags_found = False
             for tag in tags:
                 epc = tag['epc']
                 if epc not in unique_tags:
                     unique_tags[epc] = tag
+                    logger.info(f"Found tag {epc} (RSSI: {tag['rssi']}) - {len(unique_tags)}/{target_tags}")
+                    new_tags_found = True
+                    
+                    # Silence this tag so we can hear others
+                    if use_anti_collision:
+                        self._silence_tag(epc)
+                        time.sleep(0.02)  # Brief pause after silencing
+                        
                 elif tag['rssi'] > unique_tags[epc]['rssi']:
                     unique_tags[epc] = tag
             
             if len(unique_tags) < target_tags and attempt < max_attempts:
                 time.sleep(0.05)
+        
+        logger.info(f"{mode_str.capitalize()} scan completed: Found {len(unique_tags)} tags in {attempt} attempts")
+        
+        # Reset inventory at end if using anti-collision
+        if use_anti_collision:
+            self._reset_inventory()
         
         return list(unique_tags.values())
     
@@ -202,7 +267,7 @@ class M5StackUHF:
         elapsed = time.time() - start_time
         logger.info(f"Scan completed: Found {len(unique_tags)} tags in {elapsed:.2f}s ({poll_count} polls)")
         
-        return list(unique_tags.values())
+        raise Exception("return list of unique tags")
     
     def read_tags_multi_polling(self, target_tags=6, max_duration=60, poll_interval=0.03):
         """

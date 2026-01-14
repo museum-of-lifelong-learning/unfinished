@@ -96,15 +96,15 @@ AI Model:    {OLLAMA_MODEL}
 """
     logger.info(status_msg)
     
-    if printer:
-        if not args.no_print:
-            printer.print_test_slip({
-                "RFID Reader": rfid_status,
-                "Display": display_status,
-                "Printer": printer_status,
-                "AI Model": OLLAMA_MODEL
-            })
-            logger.info("Test slip printed.")
+    # if printer:
+    #     if not args.no_print:
+    #         printer.print_test_slip({
+    #             "RFID Reader": rfid_status,
+    #             "Display": display_status,
+    #             "Printer": printer_status,
+    #             "AI Model": OLLAMA_MODEL
+    #         })
+    #         logger.info("Test slip printed.")
 
     if not rfid:
         logger.error("Cannot proceed without RFID reader. Exiting.")
@@ -120,12 +120,20 @@ AI Model:    {OLLAMA_MODEL}
                 display.set_pattern("BORED")
             
             # Scan for tags with maximum reliability using multi-polling
-            logger.info("Scanning for 6 tags (multi-polling mode - optimized)...")
+            # logger.info("Scanning for 6 tags (multi-polling mode - optimized)...")
             
             # Use multi-polling scanning method for efficient 100% detection
             # Multi-polling (0x27 command) is more efficient at reading multiple tags
             # Continues until all 6 tags found or 120 second timeout
-            tags_list = rfid.read_tags_multi_polling(target_tags=6, max_duration=120)
+            
+            while not rfid.has_tags_present():
+                time.sleep(0.5)
+                
+            try:
+                tags_list = rfid.read_tags(target_tags=6, max_attempts=240, use_anti_collision=True)
+            except Exception as e:
+                logger.error(f"Error during tag reading: {e}")
+                continue
             
             # We have 6 tags!
             logger.info("State: THINKING (Processing tags)")

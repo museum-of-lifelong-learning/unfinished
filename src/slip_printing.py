@@ -106,7 +106,7 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
     
     
     # === BODY ===
-    printer.set(align='left')
+    printer.set(align='left', bold=False)
     
     # Body paragraphs - two personalized paragraphs from Ollama
     if content.get('paragraph1'):
@@ -120,7 +120,7 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
         printer.ln()
     
     # Labeled sections (bold labels)
-    categories = {"Tools & Inspiration", "Anlaufstellen & Angebote", "Programm-Empfehlung"}
+    categories = ["Tools & Inspiration", "Anlaufstellen & Angebote", "Programm-Empfehlung"]
     
     for category in categories:
         resource_recommendation = data_service.find_best_resource(

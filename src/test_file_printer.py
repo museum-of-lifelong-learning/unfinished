@@ -76,12 +76,12 @@ def test_file_printer_with_full_receipt():
             figurine_id=123,
             answers=sample_answers,
             data_service=data_service,
-            model_name='qwen2.5:3b'
+            model_name='gemini-2.5-flash'
         )
         print("✓ Full receipt test completed")
     except Exception as e:
         print(f"Note: Full receipt generation encountered: {e}")
-        print("This is expected if Ollama or figurine generation is not available")
+        print("This is expected if Gemini API or figurine generation is not available")
         # Still cut to save whatever was generated
         try:
             printer.cut()

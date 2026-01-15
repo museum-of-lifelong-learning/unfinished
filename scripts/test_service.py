@@ -22,7 +22,8 @@ try:
     from slip_printing import ReceiptRenderer
     from display_controller import auto_detect_display
     from rfid_controller import auto_detect_rfid
-    import ollama
+    from google import genai
+    from dotenv import load_dotenv
     print("   ✓ All imports successful")
     test_results["Imports"] = "OK"
 except ImportError as e:
@@ -90,18 +91,25 @@ except Exception as e:
     print(f"   ✗ Logic test failed: {e}")
     test_results["Logic"] = "ERROR"
 
-# Test 4: Ollama connection
-print("\n4. Testing Ollama connection...")
+# Test 4: Gemini API connection
+print("\n4. Testing Gemini API connection...")
 try:
-    response = ollama.chat(
-        model='qwen2.5:3b',
-        messages=[{'role': 'user', 'content': 'Say "test" and nothing else.'}]
-    )
-    print(f"   ✓ Ollama responded: {response['message']['content'][:50]}...")
-    test_results["AI (Ollama)"] = "OK"
+    load_dotenv()
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key or api_key == 'your_api_key_here':
+        print("   ✗ Gemini API key not configured in .env file")
+        test_results["AI (Gemini)"] = "NOT CONFIGURED"
+    else:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents='Say "test" and nothing else.'
+        )
+        print(f"   ✓ Gemini API responded: {response.text[:50]}...")
+        test_results["AI (Gemini)"] = "OK"
 except Exception as e:
-    print(f"   ✗ Ollama failed: {e}")
-    test_results["AI (Ollama)"] = "FAIL"
+    print(f"   ✗ Gemini API failed: {e}")
+    test_results["AI (Gemini)"] = "FAIL"
 
 # Test 5: Print test slip
 print("\n5. Testing printer output...")

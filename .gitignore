@@ -48,6 +48,20 @@ Thumbs.db
 .tmp/
 tmp/
 
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.secret
+credentials.json
+config.json
+secrets/
+
+# Cache directories
+.cache/
+*.cache
+
 # Coverage reports
 htmlcov/
 .coverage

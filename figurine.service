@@ -1,6 +1,6 @@
 [Unit]
 Description=Figurine Interaction Service
-After=network.target ollama.service
+After=network.target
 
 [Service]
 Type=simple

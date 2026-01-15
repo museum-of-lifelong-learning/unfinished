@@ -2,7 +2,7 @@ import logging
 import os
 import textwrap
 from PIL import Image
-from content_generation import generate_content_with_ollama
+from content_generation import generate_content_with_gemini
 from generate_figurine import generate_figurine
 from data_service import DataService, get_prevalent_mindset
 
@@ -60,7 +60,7 @@ def print_labeled_section(printer, label: str, text: str):
         printer.textln(wrapped)
 
 
-def create_full_receipt(printer, figurine_id: int, answers: list, data_service: DataService, model_name: str = 'qwen2.5:3b'):
+def create_full_receipt(printer, figurine_id: int, answers: list, data_service: DataService, model_name: str = 'gemini-2.5-flash'):
     """Generate and print the full receipt directly to the printer."""
     logger.info(f"[RECEIPT] Generating receipt for #{figurine_id}")
     
@@ -89,10 +89,22 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
             logger.info(f"Generated Title: {title_text.replace(chr(10), ' ')}")
     
     # Generate figurine
-    figurine_path = generate_figurine(svg_list, title_text=title_text, figurine_id=figurine_id)
+    from dotenv import load_dotenv
+    import os
+    from pathlib import Path
+    load_dotenv()
+    figurine_output_dir = os.getenv('FIGURINE_OUTPUT_DIR')
+    if not figurine_output_dir:
+        figurine_output_dir = str(Path(__file__).parent.parent / 'output')
+    figurine_path = generate_figurine(
+        svg_list,
+        output_path=str(Path(figurine_output_dir) / f'figurine_{figurine_id}.png'),
+        title_text=title_text,
+        figurine_id=figurine_id
+    )
     
-    # Generate personalized content with Ollama
-    content = generate_content_with_ollama(answers, data_service=data_service, model_name=model_name)
+    # Generate personalized content with Gemini API
+    content = generate_content_with_gemini(answers, data_service=data_service, figurine_id=figurine_id, model_name=model_name)
     
     # === HEADER: Image ===
     if figurine_path and os.path.exists(figurine_path):

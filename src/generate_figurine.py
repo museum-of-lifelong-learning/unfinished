@@ -4,6 +4,17 @@ Generate PNG images with geometric shapes similar to figurine stacking.
 Creates 6 shapes stacked vertically, randomly chosen from a pool of shapes.
 """
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+# Load environment variables from .env file
+load_dotenv()
+
+# Get output directory for figurines from .env or default to 'output'
+FIGURINE_OUTPUT_DIR = os.getenv('FIGURINE_OUTPUT_DIR')
+if not FIGURINE_OUTPUT_DIR:
+    FIGURINE_OUTPUT_DIR = str(Path(__file__).parent.parent / 'output')
+output_dir_path = Path(FIGURINE_OUTPUT_DIR)
+output_dir_path.mkdir(exist_ok=True)
 import drawsvg as draw
 
 
@@ -124,12 +135,10 @@ def generate_figurine(shapes: list, output_path: str = None, title_text: str = N
     
     # Create output path if not provided
     if output_path is None:
-        assets_dir = Path(__file__).parent.parent / 'assets'
-        assets_dir.mkdir(exist_ok=True)
         if figurine_id is not None:
-            output_path = str(assets_dir / f'figurine_{figurine_id}.png')
+            output_path = str(output_dir_path / f'figurine_{figurine_id}.png')
         else:
-            output_path = str(assets_dir / 'figurine.png')
+            output_path = str(output_dir_path / 'figurine.png')
 
     # Calculate dimensions based on height
     figurine_width =512

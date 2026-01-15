@@ -40,7 +40,8 @@ root_logger.addHandler(stream_handler)
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_MODEL = 'qwen2.5:3b'
+# Import Gemini configuration
+from content_generation import GEMINI_MODEL
 
 data_service = data_service.DataService()
 
@@ -91,7 +92,7 @@ def main():
 RFID Reader: {rfid_status}
 Display:     {display_status}
 Printer:     {printer_status}
-AI Model:    {OLLAMA_MODEL}
+AI Model:    {GEMINI_MODEL}
 ======================
 """
     logger.info(status_msg)
@@ -143,6 +144,9 @@ AI Model:    {OLLAMA_MODEL}
             
             answers = data_service.find_answer_by_tags([tag['epc'] for tag in tags_list])
             
+            # sort the answers by Frage_ID to have consistent order
+            answers.sort(key=lambda x: x.get('Frage_ID', 0))
+            
             logger.info("Tag Answers:")
             if answers:
                 for ans in answers:
@@ -175,7 +179,7 @@ AI Model:    {OLLAMA_MODEL}
                     logger.info("[NO-PRINT MODE] Skipping receipt printing")
                     logger.info(f"Would have printed receipt for Figurine ID: {figurine_id}")
                 else:
-                    create_full_receipt(printer.printer, figurine_id, answers=answers, data_service=data_service, model_name=OLLAMA_MODEL)
+                    create_full_receipt(printer.printer, figurine_id, answers=answers, data_service=data_service, model_name=GEMINI_MODEL)
                     logger.info("Receipt printed successfully.")
                     
                     log_temperatures()                

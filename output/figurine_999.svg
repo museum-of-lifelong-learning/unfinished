@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="512" height="600" viewBox="0 0 512 600" displayMode="inline">
+<defs>
+</defs>
+<rect x="0" y="0" width="512" height="600" fill="white" />
+<g transform="translate(-944.0, 0)">
+<path d="M0,600 L2400.0,600 L1200.0,0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+</svg>

@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
 Generate PNG images with geometric shapes similar to figurine stacking.
-Creates 6 shapes stacked vertically, randomly chosen from a pool of shapes.
+Creates shapes stacked vertically using the shapes library.
 """
 from pathlib import Path
-import os
 from dotenv import load_dotenv
+import os
+import drawsvg as draw
+
+# Import shapes from the shapes module
+from shapes import SHAPE_MENU, SHAPE_WIDTH_RATIOS
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -15,105 +20,6 @@ if not FIGURINE_OUTPUT_DIR:
     FIGURINE_OUTPUT_DIR = str(Path(__file__).parent.parent / 'output')
 output_dir_path = Path(FIGURINE_OUTPUT_DIR)
 output_dir_path.mkdir(exist_ok=True)
-import drawsvg as draw
-
-
-# --- Shape drawing functions using drawsvg ---
-# All shapes accept only height value, width is proportional
-
-# --- Image: Level1_Fuss_side.png (Original Reference) ---
-
-def draw_wide_semioval(h):
-    """Shape 1: Squashed top-half semi-oval"""
-    w = h * 2.5
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
-    path.M(0, h).A(w/2, h, 0, 0, 1, w, h).L(w, h).Z()
-    return path
-
-def draw_wide_rectangle(h):
-    """Shape 2 & 5: Standard wide rectangle block"""
-    w = h * 2.2
-    return draw.Rectangle(0, 0, w, h, fill='white', stroke='black', stroke_width=2)
-
-def draw_capsule_pill(h):
-    """Shape 3: Flat-sided pill shape (capsule)"""
-    w = h * 2.5
-    return draw.Rectangle(0, 0, w, h, rx=h/2, ry=h/2, fill='white', stroke='black', stroke_width=2)
-
-def draw_tapered_trapezoid(h):
-    """Shape 4: Narrow-top trapezoid"""
-    w = h * 2.5
-    return draw.Lines(w*0.35, 0, w*0.65, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_blocky_trapezoid(h):
-    """Shape 6: Steep-walled trapezoid"""
-    w = h * 2.0
-    return draw.Lines(w*0.1, 0, w*0.9, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
-
-
-# --- Image: New Reference (Stacked & Rounded Elements) ---
-
-def draw_stacked_rectangles(h):
-    """Image 2: A narrow rectangle sitting on a wider rectangle base"""
-    w_base = h * 2.2
-    w_top = w_base * 0.75
-    offset = (w_base - w_top) / 2
-    group = draw.Group()
-    # Bottom part (half height)
-    group.append(draw.Rectangle(0, h/2, w_base, h/2, fill='white', stroke='black', stroke_width=2))
-    # Top part (half height)
-    group.append(draw.Rectangle(offset, 0, w_top, h/2, fill='white', stroke='black', stroke_width=2))
-    return group
-
-def draw_solid_diamond(h):
-    """Image 3 & 4: The dark charcoal diamond shapes"""
-    w = h * 1.2 # Diamonds are slightly taller/narrower than the blocks
-    return draw.Lines(w/2, 0, w, h/2, w/2, h, 0, h/2, close=True, fill='white', stroke='black', stroke_width=2)
-
-def draw_stepped_block(h):
-    """Image 5: The dark stepped base shape"""
-    w = h * 2.2
-    indent = w * 0.15
-    group = draw.Group()
-    # Draws the 'notched' look seen in the dark grey shape
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
-    path.M(indent, 0).L(w-indent, 0).L(w-indent, h/2)
-    path.L(w, h/2).L(w, h).L(0, h).L(0, h/2).L(indent, h/2).Z()
-    group.append(path)
-    return group
-
-def draw_sphere_circle(h):
-    """Image 6: The light green spherical shape"""
-    # Note: In your image this is a perfect circle, but it sits slightly above the floor
-    r = h / 2
-    return draw.Circle(r, r, r, fill='white', stroke='black', stroke_width=2)
-
-
-# --- THE MAPPING ---
-SHAPE_MENU = {
-    "semioval": draw_wide_semioval,
-    "wide_rectangle": draw_wide_rectangle,
-    "capsule_pill": draw_capsule_pill,
-    "tapered_trapezoid": draw_tapered_trapezoid,
-    "blocky_trapezoid": draw_blocky_trapezoid,  
-    "stacked_rectangles": draw_stacked_rectangles,
-    "solid_diamond": draw_solid_diamond,
-    "stepped_block": draw_stepped_block,
-    "sphere_circle": draw_sphere_circle,
-}
-
-# Width ratios for each shape (width = height * ratio)
-SHAPE_WIDTH_RATIOS = {
-    "semioval": 2.5,
-    "wide_rectangle": 2.2,
-    "capsule_pill": 2.5,
-    "tapered_trapezoid": 2.5,
-    "blocky_trapezoid": 2.0,
-    "stacked_rectangles": 2.2,
-    "solid_diamond": 1.2,
-    "stepped_block": 2.2,
-    "sphere_circle": 1.0,  # diameter = height
-}
 
 def generate_figurine(shapes: list, output_path: str = None, title_text: str = None, figurine_id: int = None):
     """

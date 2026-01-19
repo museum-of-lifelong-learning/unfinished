@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="800" height="960" viewBox="0 0 800 960">
+<defs>
+</defs>
+<rect x="0" y="0" width="800" height="960" fill="#f5f5f5" />
+<text x="400.0" y="35" font-size="24" text-anchor="middle" font-family="sans-serif" font-weight="bold" fill="#333">Shape Catalog (21 shapes)</text>
+<rect x="2" y="62" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M100.0,62 L100.0,180" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M2,120.0 L198,120.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(20.0, 88.0)">
+<path d="M0,64.0 A80.0,64.0,0,0,1,160.0,64.0 L160.0,64.0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="100.0" y="200" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">semioval</text>
+<rect x="202" y="62" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M300.0,62 L300.0,180" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M202,120.0 L398,120.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(220.0, 83.63636363636364)">
+<rect x="0" y="0" width="160.0" height="72.72727272727272" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="300.0" y="200" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">wide_rectangle</text>
+<rect x="402" y="62" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M500.0,62 L500.0,180" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M402,120.0 L598,120.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(420.0, 88.0)">
+<rect x="0" y="0" width="160.0" height="64.0" rx="32.0" ry="32.0" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="500.0" y="200" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">capsule_pill</text>
+<rect x="602" y="62" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M700.0,62 L700.0,180" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M602,120.0 L798,120.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(620.0, 88.0)">
+<path d="M56.0,0 L104.0,0 L160.0,64.0 L0,64.0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="700.0" y="200" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">tapered_trapezoid</text>
+<rect x="2" y="212" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M100.0,212 L100.0,330" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M2,270.0 L198,270.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(20.0, 230.0)">
+<path d="M16.0,0 L144.0,0 L160.0,80 L0,80 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="100.0" y="350" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">blocky_trapezoid</text>
+<rect x="202" y="212" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M300.0,212 L300.0,330" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M202,270.0 L398,270.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(220.0, 233.63636363636363)">
+<g>
+<path d="M24.0,0 L136.0,0 L136.0,36.36363636363636 L160.0,36.36363636363636 L160.0,72.72727272727272 L0,72.72727272727272 L0,36.36363636363636 L24.0,36.36363636363636 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+</g>
+<text x="300.0" y="350" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">stepped_block</text>
+<rect x="402" y="212" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M500.0,212 L500.0,330" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M402,270.0 L598,270.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(460.0, 230.0)">
+<circle cx="40.0" cy="40.0" r="40.0" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="500.0" y="350" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">sphere_circle</text>
+<rect x="602" y="212" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M700.0,212 L700.0,330" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M602,270.0 L798,270.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(620.0, 250.0)">
+<path d="M0,40.0 L160.0,40.0 L80.0,0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="700.0" y="350" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">flat_pyramid</text>
+<rect x="2" y="362" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M100.0,362 L100.0,480" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M2,420.0 L198,420.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(20.0, 400.0)">
+<rect x="0" y="0" width="160.0" height="40.0" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="100.0" y="500" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">flat_rectangle</text>
+<rect x="202" y="362" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M300.0,362 L300.0,480" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M202,420.0 L398,420.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(220.0, 400.0)">
+<ellipse cx="80.0" cy="20.0" rx="80.0" ry="20.0" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="300.0" y="500" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">flat_pressed_oval</text>
+<rect x="402" y="362" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M500.0,362 L500.0,480" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M402,420.0 L598,420.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(420.0, 400.0)">
+<path d="M0,40.0 L160.0,40.0 L136.0,0 L24.0,0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="500.0" y="500" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">flat_trapezoid</text>
+<rect x="602" y="362" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M700.0,362 L700.0,480" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M602,420.0 L798,420.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(673.3333333333334, 380.0)">
+<path d="M0,80 L53.33333333333333,80 L26.666666666666664,0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="700.0" y="500" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">tall_pyramid</text>
+<rect x="2" y="512" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M100.0,512 L100.0,630" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M2,570.0 L198,570.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(73.33333333333334, 530.0)">
+<path d="M26.666666666666664,0 L53.33333333333333,40.0 L26.666666666666664,80 L0,40.0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="100.0" y="650" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">rhombus_udlr</text>
+<rect x="202" y="512" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M300.0,512 L300.0,630" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M202,570.0 L398,570.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(277.1428571428571, 530.0)">
+<path d="M7.7385639367737635,40.0 A22.857142857142858,22.857142857142858,0,1,1,37.97572177751195,40.0 A22.857142857142858,22.857142857142858,0,1,1,7.7385639367737635,40.0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="300.0" y="650" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">stacked_circles</text>
+<rect x="402" y="512" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M500.0,512 L500.0,630" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M402,570.0 L598,570.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(467.34693877551024, 530.0)">
+<path d="M24.80040004223931,15.652173913043482 A9.795918367346939,9.795918367346939,0,1,1,40.50572240674028,15.652173913043482 A32.6530612244898,32.6530612244898,0,1,1,24.80040004223931,15.652173913043482 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="500.0" y="650" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">stacked_circles_custom</text>
+<rect x="602" y="512" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M700.0,512 L700.0,630" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M602,570.0 L798,570.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(678.7793409210806, 530.0)">
+<rect x="0" y="0" width="42.441318157838765" height="80" rx="21.220659078919383" ry="21.220659078919383" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="700.0" y="650" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">upright_pill</text>
+<rect x="2" y="662" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M100.0,662 L100.0,780" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M2,720.0 L198,720.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(20.0, 700.0)">
+<path d="M0,40.0 L160.0,40.0 L160.0,32.0 L80.0,0 L0,32.0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="100.0" y="800" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">flat_pyramid_sockel</text>
+<rect x="202" y="662" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M300.0,662 L300.0,780" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M202,720.0 L398,720.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(273.33333333333337, 680.0)">
+<path d="M0,80 L53.33333333333333,80 L35.55555555555556,0 L17.77777777777778,0 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="300.0" y="800" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">tall_trapezoid</text>
+<rect x="402" y="662" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M500.0,662 L500.0,780" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M402,720.0 L598,720.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(460.0, 680.0)">
+<path d="M12.0,80 L68.0,80 L68.0,66.66666666666667 L80,66.66666666666667 L80,26.666666666666668 L60.0,26.666666666666668 L60.0,0 L20.0,0 L20.0,26.666666666666668 L0,26.666666666666668 L0,66.66666666666667 L12.0,66.66666666666667 Z" fill="white" stroke="black" stroke-width="2" />
+</g>
+<text x="500.0" y="800" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">stepped_block_3</text>
+<rect x="602" y="662" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M700.0,662 L700.0,780" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M602,720.0 L798,720.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(673.3333333333334, 680.0)">
+<path d="M0,14.0 A14.0,14.0,0,0,1,28.0,14.0 A14.0,14.0,0,0,1,56.0,14.0 L56.0,66.0 A14.0,14.0,0,0,1,28.0,66.0 A14.0,14.0,0,0,1,0,66.0 L0,14.0 Z" stroke="black" stroke-width="2" fill="none" />
+</g>
+<text x="700.0" y="800" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">double_upright_pill</text>
+<rect x="2" y="812" width="196" height="146" fill="white" stroke="#ddd" stroke-width="1" rx="5" ry="5" />
+<path d="M100.0,812 L100.0,930" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<path d="M2,870.0 L198,870.0" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3" />
+<g transform="translate(72.0, 830.0)">
+<path d="M0,0 A64.0,64.0,0,0,0,19.6,40.0 A64.0,64.0,0,0,0,0,80 L56.0,80 A64.0,64.0,0,0,0,36.4,40.0 A64.0,64.0,0,0,0,56.0,0 L0,0 Z" stroke="black" stroke-width="2" fill="none" />
+</g>
+<text x="100.0" y="950" font-size="14" text-anchor="middle" font-family="monospace" fill="#555">facing_bowls</text>
+</svg>

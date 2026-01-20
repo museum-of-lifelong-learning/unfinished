@@ -1,0 +1,281 @@
+/**
+ * SlipView Module
+ * Manages the slip overlay that shows figure details
+ */
+
+const SlipView = (function() {
+    // DOM element references
+    let overlay = null;
+    let closeBtn = null;
+    let figureImage = null;
+    let word1El = null;
+    let word2El = null;
+    let characterNumberEl = null;
+    let paragraph1El = null;
+    let paragraph2El = null;
+    let resourceToolsEl = null;
+    let resourceAnlaufstellenEl = null;
+    let resourceProgrammEl = null;
+
+    // Default/placeholder content
+    const PLACEHOLDER = {
+        word1: 'Dein',
+        word2: 'Charakter.',
+        paragraph1: 'Dies ist dein einzigartiger Charakter aus der Figurine Gallery.',
+        paragraph2: 'Erkunde die Galerie und entdecke 27.000 weitere Charaktere.',
+        resource: 'Keine Daten verfügbar'
+    };
+
+    /**
+     * Initialize the slip view module
+     * Sets up DOM references and event listeners
+     */
+    function init() {
+        // Cache DOM elements
+        overlay = document.getElementById('slip-overlay');
+        closeBtn = document.getElementById('slip-close-btn');
+        figureImage = document.getElementById('slip-figure-image');
+        word1El = document.getElementById('slip-word1');
+        word2El = document.getElementById('slip-word2');
+        characterNumberEl = document.getElementById('slip-character-number');
+        paragraph1El = document.getElementById('slip-paragraph1');
+        paragraph2El = document.getElementById('slip-paragraph2');
+        resourceToolsEl = document.getElementById('slip-resource-tools');
+        resourceAnlaufstellenEl = document.getElementById('slip-resource-anlaufstellen');
+        resourceProgrammEl = document.getElementById('slip-resource-programm');
+
+        if (!overlay) {
+            console.error('SlipView: #slip-overlay element not found');
+            return;
+        }
+
+        // Set initial state
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.classList.remove('hidden');
+
+        // Set up event listeners
+        setupEventListeners();
+        
+        console.log('SlipView: Initialized');
+    }
+
+    /**
+     * Set up all event listeners for the slip overlay
+     */
+    function setupEventListeners() {
+        // Close button click
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                hide();
+            });
+        }
+
+        // Backdrop click (click on overlay but not on content)
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                hide();
+            }
+        });
+
+        // Escape key press
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isOpen()) {
+                hide();
+            }
+        });
+
+        // Prevent scroll propagation when slip is open
+        overlay.addEventListener('wheel', function(e) {
+            const slipContent = overlay.querySelector('.slip-content');
+            if (slipContent) {
+                const isScrollable = slipContent.scrollHeight > slipContent.clientHeight;
+                const isAtTop = slipContent.scrollTop === 0;
+                const isAtBottom = slipContent.scrollTop + slipContent.clientHeight >= slipContent.scrollHeight;
+
+                // Allow scrolling within the slip content
+                if (isScrollable) {
+                    if ((e.deltaY < 0 && isAtTop) || (e.deltaY > 0 && isAtBottom)) {
+                        e.preventDefault();
+                    }
+                } else {
+                    e.preventDefault();
+                }
+            }
+        }, { passive: false });
+    }
+
+    /**
+     * Check if the slip overlay is currently open
+     * @returns {boolean}
+     */
+    function isOpen() {
+        return overlay && overlay.getAttribute('aria-hidden') === 'false';
+    }
+
+    /**
+     * Show the slip overlay with figure data
+     * @param {Object} figureData - Data from Google Sheets
+     */
+    function show(figureData) {
+        if (!overlay) {
+            console.error('SlipView: Cannot show - overlay not initialized');
+            return;
+        }
+
+        // Populate content
+        if (figureData && figureData.FigureID) {
+            populateContent(figureData);
+        } else if (figureData && figureData.figureId) {
+            // If only figureId is provided, show placeholder
+            showPlaceholder(figureData.figureId);
+        } else {
+            console.error('SlipView: No figure data provided');
+            return;
+        }
+
+        // Show the overlay
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('slip-open');
+
+        // Focus management for accessibility
+        if (closeBtn) {
+            closeBtn.focus();
+        }
+    }
+
+    /**
+     * Hide the slip overlay
+     */
+    function hide() {
+        if (!overlay) return;
+
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('slip-open');
+    }
+
+    /**
+     * Populate all DOM elements with figure data
+     * @param {Object} data - Figure data from Google Sheets
+     */
+    function populateContent(data) {
+        // Set figure image
+        const figureId = data.FigureID || data.figureId;
+        setFigureImage(figureId);
+
+        // Set title words
+        if (word1El) {
+            word1El.textContent = data.Word1 || PLACEHOLDER.word1;
+        }
+        if (word2El) {
+            word2El.textContent = data.Word2 || PLACEHOLDER.word2;
+        }
+
+        // Set character number
+        if (characterNumberEl) {
+            const paddedId = String(figureId).padStart(5, '0');
+            characterNumberEl.textContent = `#${paddedId}`;
+        }
+
+        // Set paragraphs
+        if (paragraph1El) {
+            paragraph1El.textContent = data.Paragraph1 || PLACEHOLDER.paragraph1;
+        }
+        if (paragraph2El) {
+            paragraph2El.textContent = data.Paragraph2 || PLACEHOLDER.paragraph2;
+        }
+
+        // Set resource sections
+        if (resourceToolsEl) {
+            resourceToolsEl.textContent = data.Resource_ToolsInspiration || PLACEHOLDER.resource;
+        }
+        if (resourceAnlaufstellenEl) {
+            resourceAnlaufstellenEl.textContent = data.Resource_Anlaufstellen || PLACEHOLDER.resource;
+        }
+        if (resourceProgrammEl) {
+            resourceProgrammEl.textContent = data.Resource_Programm || PLACEHOLDER.resource;
+        }
+    }
+
+    /**
+     * Set the figure SVG image source
+     * @param {number|string} figureId - The figure ID
+     */
+    function setFigureImage(figureId) {
+        if (!figureImage) return;
+
+        const paddedId = String(figureId).padStart(5, '0');
+        const imagePath = `assets/figures/figure-${paddedId}.svg`;
+        
+        figureImage.src = imagePath;
+        figureImage.alt = `Figure ${paddedId}`;
+
+        // Handle image load error
+        figureImage.onerror = function() {
+            console.warn(`SlipView: Failed to load image for figure ${figureId}`);
+            // Optionally set a fallback image
+            // figureImage.src = 'assets/figures/placeholder.svg';
+        };
+    }
+
+    /**
+     * Show placeholder content when data is not available
+     * @param {number|string} figureId - The figure ID
+     */
+    function showPlaceholder(figureId) {
+        // Set figure image
+        setFigureImage(figureId);
+
+        // Set placeholder title words
+        if (word1El) {
+            word1El.textContent = PLACEHOLDER.word1;
+        }
+        if (word2El) {
+            word2El.textContent = PLACEHOLDER.word2;
+        }
+
+        // Set character number
+        if (characterNumberEl) {
+            const paddedId = String(figureId).padStart(5, '0');
+            characterNumberEl.textContent = `#${paddedId}`;
+        }
+
+        // Set placeholder paragraphs
+        if (paragraph1El) {
+            paragraph1El.textContent = PLACEHOLDER.paragraph1;
+        }
+        if (paragraph2El) {
+            paragraph2El.textContent = PLACEHOLDER.paragraph2;
+        }
+
+        // Set placeholder resources
+        if (resourceToolsEl) {
+            resourceToolsEl.textContent = PLACEHOLDER.resource;
+        }
+        if (resourceAnlaufstellenEl) {
+            resourceAnlaufstellenEl.textContent = PLACEHOLDER.resource;
+        }
+        if (resourceProgrammEl) {
+            resourceProgrammEl.textContent = PLACEHOLDER.resource;
+        }
+    }
+
+    // Public API
+    return {
+        init: init,
+        show: show,
+        hide: hide,
+        populateContent: populateContent,
+        setFigureImage: setFigureImage,
+        showPlaceholder: showPlaceholder,
+        isOpen: isOpen
+    };
+})();
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', SlipView.init);
+} else {
+    SlipView.init();
+}

@@ -10,12 +10,21 @@ import argparse
 import itertools
 import random
 from pathlib import Path
+import tempfile
+import shutil
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
 import drawsvg as draw
 from shapes import get_shape, get_shape_width
+
+try:
+    from PIL import Image
+    import cairosvg
+    GIF_SUPPORT = True
+except ImportError:
+    GIF_SUPPORT = False
 
 # Level-specific shape assignments (same as test_all_shapes.py)
 LEVEL_SHAPES = {
@@ -30,7 +39,7 @@ LEVEL_SHAPES = {
 # Visual constants
 # Height ratios for each element (same as generate_figurine.py)
 TOKEN_HEIGHT_RATIOS = [1.5, 3, 1, 6, 6, 1.5]
-FIGURINE_HEIGHT = 120  # Total height for each figurine stack
+FIGURINE_HEIGHT = 240  # Total height for each figurine stack
 CELL_PADDING = 20  # Padding around each figure in its cell
 LABEL_HEIGHT = 20  # Height reserved for number label
 LABEL_FONT_SIZE = 12
@@ -316,6 +325,119 @@ def generate_catalog(num_figures=100, output_path="figure_catalog.svg", random_m
     return output_path
 
 
+def generate_catalog_gif(num_figures=100, output_path="figure_catalog.gif", 
+                         frame_duration=100, random_mode=False, seed=None):
+    """
+    Generate an animated GIF showing figurines one after another.
+    
+    Args:
+        num_figures: Number of figures to include (default 100)
+        output_path: Path to save the GIF file
+        frame_duration: Duration of each frame in milliseconds (default 500)
+        random_mode: If True, generate random unique IDs; if False, sequential
+        seed: Random seed for reproducibility (only used if random_mode=True)
+    """
+    if not GIF_SUPPORT:
+        print("Error: GIF generation requires 'pillow' and 'cairosvg' packages.")
+        print("Install them with: pip install pillow cairosvg")
+        return None
+    
+    total_available = get_total_combinations()
+    
+    print(f"Total possible combinations: {total_available}")
+    
+    # Limit to requested number
+    num_figures = min(num_figures, total_available)
+    
+    # Generate figure IDs
+    if random_mode:
+        print(f"Generating {num_figures} random unique figures...")
+        figure_ids = generate_random_unique_ids(num_figures, seed=seed)
+    else:
+        print(f"Generating GIF with first {num_figures} figures...")
+        figure_ids = list(range(1, num_figures + 1))
+    
+    # Convert IDs to shape combinations
+    combinations = []
+    for fig_id in figure_ids:
+        shapes = id_to_shape_combination(fig_id)
+        combinations.append((fig_id, shapes))
+    
+    # Calculate frame dimensions
+    # Frame should be large enough to show one figurine centered
+    total_ratio = sum(TOKEN_HEIGHT_RATIOS)
+    max_shape_width = 0
+    for i, ratio in enumerate(TOKEN_HEIGHT_RATIOS):
+        shape_height = FIGURINE_HEIGHT * ratio / total_ratio
+        # flat_rectangle is widest at 6.0 ratio
+        max_width = shape_height * 6.0
+        max_shape_width = max(max_shape_width, max_width)
+    
+    frame_width = max_shape_width + CELL_PADDING * 4
+    frame_height = FIGURINE_HEIGHT + LABEL_HEIGHT + CELL_PADDING * 4
+    
+    print(f"Frame size: {frame_width:.0f} × {frame_height:.0f} pixels")
+    print(f"Frame duration: {frame_duration}ms")
+    print(f"Total duration: {num_figures * frame_duration / 1000:.1f}s")
+    
+    # Create temporary directory for frames
+    temp_dir = tempfile.mkdtemp()
+    
+    try:
+        frames = []
+        
+        # Generate each frame
+        for idx, (fig_id, shapes) in enumerate(combinations):
+            # Create SVG for this frame
+            canvas = draw.Drawing(frame_width, frame_height, origin=(0, 0))
+            canvas.append(draw.Rectangle(0, 0, frame_width, frame_height, fill='white'))
+            
+            # Draw figurine centered in frame
+            figure_group = draw_figurine_in_cell(
+                shapes,
+                CELL_PADDING * 2,
+                CELL_PADDING * 2,
+                frame_width - CELL_PADDING * 4,
+                frame_height - CELL_PADDING * 4,
+                fig_id
+            )
+            canvas.append(figure_group)
+            
+            # Save SVG to temp file
+            svg_path = Path(temp_dir) / f"frame_{idx:05d}.svg"
+            png_path = Path(temp_dir) / f"frame_{idx:05d}.png"
+            
+            canvas.save_svg(str(svg_path))
+            
+            # Convert SVG to PNG
+            cairosvg.svg2png(url=str(svg_path), write_to=str(png_path), 
+                           output_width=int(frame_width), output_height=int(frame_height))
+            
+            # Load PNG
+            frames.append(Image.open(png_path))
+            
+            if (idx + 1) % 10 == 0 or idx + 1 == num_figures:
+                print(f"  Progress: {idx + 1}/{num_figures} frames")
+        
+        # Create GIF
+        print(f"\nCreating GIF...")
+        frames[0].save(
+            output_path,
+            save_all=True,
+            append_images=frames[1:],
+            duration=frame_duration,
+            loop=0  # 0 means loop forever
+        )
+        
+        print(f"✓ GIF saved to: {output_path}")
+        
+    finally:
+        # Clean up temp directory
+        shutil.rmtree(temp_dir)
+    
+    return output_path
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate a catalog of all possible figurine combinations.'
@@ -344,6 +466,17 @@ def main():
         default=None,
         help='Random seed for reproducibility (only used with --random)'
     )
+    parser.add_argument(
+        '--gif',
+        action='store_true',
+        help='Generate animated GIF instead of static catalog'
+    )
+    parser.add_argument(
+        '-d', '--duration',
+        type=int,
+        default=500,
+        help='Frame duration in milliseconds for GIF mode (default: 500)'
+    )
     
     args = parser.parse_args()
     
@@ -357,8 +490,16 @@ def main():
         print(f"Warning: Requested {args.count} figures, but maximum is {total_max}")
         args.count = total_max
     
-    # Generate catalog
-    generate_catalog(args.count, args.output, random_mode=args.random, seed=args.seed)
+    # Generate catalog (GIF or static)
+    if args.gif:
+        # Auto-adjust output extension if needed
+        output = args.output
+        if not output.endswith('.gif'):
+            output = output.rsplit('.', 1)[0] + '.gif' if '.' in output else output + '.gif'
+        generate_catalog_gif(args.count, output, frame_duration=args.duration, 
+                           random_mode=args.random, seed=args.seed)
+    else:
+        generate_catalog(args.count, args.output, random_mode=args.random, seed=args.seed)
 
 
 if __name__ == "__main__":

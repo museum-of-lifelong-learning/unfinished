@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Figurine Gallery - Explore 27,000 unique figurine characters from Unfinished by Design">
+    <meta name="theme-color" content="#1a1a2e">
+    
+    <title>Figurine Gallery | Unfinished by Design</title>
+    
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://docs.google.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Papa Parse for CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <!-- Skip link for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Loading indicator -->
+    <div id="loading-indicator" class="loading-indicator" role="status" aria-live="polite">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <span class="loading-text">Lade Figurine Gallery...</span>
+    </div>
+    
+    <!-- Main content container -->
+    <main id="main-content" class="main-container" role="main" aria-label="Figurine Gallery Grid">
+        <!-- Infinite scrolling grid container -->
+        <div 
+            id="grid-container" 
+            class="grid-container"
+            role="grid"
+            aria-label="Figurine character grid - use arrow keys to navigate"
+            tabindex="0"
+        >
+            <!-- Grid items will be dynamically inserted here -->
+            <!-- Virtual scrolling: only visible items + buffer rendered -->
+        </div>
+    </main>
+    
+    <!-- Minimap container (fixed position top-right) -->
+    <nav 
+        id="minimap-container" 
+        class="minimap-container"
+        role="navigation"
+        aria-label="Grid navigation minimap - click to return to your figure"
+    >
+        <div class="minimap-grid" aria-hidden="true">
+            <!-- Minimap visual representation -->
+            <div id="minimap-viewport" class="minimap-viewport"></div>
+            <div id="minimap-position" class="minimap-position" title="Your position"></div>
+        </div>
+        <button 
+            id="minimap-home-btn" 
+            class="minimap-home-btn"
+            aria-label="Return to your character"
+            title="Zurück zu deinem Charakter"
+        >
+            <span class="minimap-home-icon" aria-hidden="true">⌂</span>
+        </button>
+    </nav>
+    
+    <!-- Slip overlay container (hidden by default) -->
+    <div 
+        id="slip-overlay" 
+        class="slip-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="slip-title"
+        aria-describedby="slip-content"
+    >
+        <!-- Close button -->
+        <button 
+            id="slip-close-btn" 
+            class="slip-close-btn"
+            aria-label="Close detail view"
+            title="Schließen"
+        >
+            <span aria-hidden="true">×</span>
+        </button>
+        
+        <!-- Slip content wrapper (scrollable) -->
+        <div class="slip-content-wrapper" role="document">
+            <!-- Header with figure image and word overlay -->
+            <header class="slip-header">
+                <div class="slip-figure-container">
+                    <img 
+                        id="slip-figure-image" 
+                        class="slip-figure-image" 
+                        src="" 
+                        alt="Your figurine character"
+                    >
+                    <div class="slip-word-overlay">
+                        <span id="slip-word1" class="slip-word slip-word1"></span>
+                        <span id="slip-word2" class="slip-word slip-word2"></span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Character ID section -->
+            <section class="slip-character-id" aria-label="Character identification">
+                <h1 id="slip-title" class="slip-title">
+                    Charakter <span id="slip-character-number">0</span> / 27000
+                </h1>
+            </section>
+            
+            <!-- Main content section -->
+            <article id="slip-content" class="slip-body-content">
+                <!-- Two paragraphs of generated text -->
+                <p id="slip-paragraph1" class="slip-paragraph"></p>
+                <p id="slip-paragraph2" class="slip-paragraph"></p>
+            </article>
+            
+            <!-- Resource sections -->
+            <section class="slip-resources" aria-label="Resources and recommendations">
+                <!-- Resource 1: Tools & Inspiration -->
+                <div class="slip-resource-section">
+                    <h2 class="slip-resource-label">Tools & Inspiration:</h2>
+                    <p id="slip-resource-tools" class="slip-resource-content"></p>
+                </div>
+                
+                <!-- Resource 2: Anlaufstellen & Angebote -->
+                <div class="slip-resource-section">
+                    <h2 class="slip-resource-label">Anlaufstellen & Angebote:</h2>
+                    <p id="slip-resource-anlaufstellen" class="slip-resource-content"></p>
+                </div>
+                
+                <!-- Resource 3: Programm-Empfehlung -->
+                <div class="slip-resource-section">
+                    <h2 class="slip-resource-label">Programm-Empfehlung:</h2>
+                    <p id="slip-resource-programm" class="slip-resource-content"></p>
+                </div>
+            </section>
+            
+            <!-- Footer section -->
+            <footer class="slip-footer">
+                <p class="slip-footer-tagline">Bleib unfertig.</p>
+                <p class="slip-footer-thanks">Vielen Dank für deinen Besuch.</p>
+                <p class="slip-footer-museum">
+                    <strong>Unfinished by Design –</strong><br>
+                    <strong>The Museum of Lifelong Learning</strong>
+                </p>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Error overlay (hidden by default) -->
+    <div 
+        id="error-overlay" 
+        class="error-overlay hidden"
+        role="alert"
+        aria-live="assertive"
+    >
+        <div class="error-content">
+            <h2 class="error-title">Etwas ist schiefgelaufen</h2>
+            <p id="error-message" class="error-message"></p>
+            <button 
+                id="error-retry-btn" 
+                class="error-retry-btn"
+                aria-label="Retry loading"
+            >
+                Erneut versuchen
+            </button>
+        </div>
+    </div>
+    
+    <!-- Keyboard navigation hints (screen reader only) -->
+    <div class="sr-only" aria-live="polite">
+        <p>Keyboard navigation: Use arrow keys to scroll the grid. Press Enter to open details for the highlighted figure. Press Escape to close the detail view.</p>
+    </div>
+    
+    <!-- Scripts (loaded in order) -->
+    <script src="js/data-service.js"></script>
+    <script src="js/grid-manager.js"></script>
+    <script src="js/slip-view.js"></script>
+    <script src="js/minimap.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Register Service Worker for caching -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.warn('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

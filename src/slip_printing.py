@@ -85,7 +85,7 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
         word2 = data_service.get_random_title_word(category2)
         
         if word1 and word2 and word1 != "Unknown" and word2 != "Unknown":
-            title_text = f"{word1}\n{word2}."
+            title_text = f"{word1}\n{word2}"
             logger.info(f"Generated Title: {title_text.replace(chr(10), ' ')}")
     
     # Generate figurine
@@ -113,7 +113,7 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
     
     # Figurine number
     printer.set(align='center')
-    printer.textln(f"Charakter {figurine_id} / {data_service.get_total_unique_ids()}")
+    printer.textln(f"Lerncharakter {figurine_id} / {data_service.get_total_unique_ids()}")
     printer.ln()
     
     
@@ -158,7 +158,7 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
     printer.ln()
     
     printer.set(align='center', bold=True)
-    printer.textln("Unfinished by Design –")
+    printer.textln("Unfinished")
     printer.textln("The Museum of Lifelong Learning")
     printer.ln()
     

@@ -189,23 +189,35 @@ def generate_content_with_gemini(answers: List[Dict], data_service: DataService,
         # Configure generation parameters
         generation_config = types.GenerateContentConfig(
             temperature=0.8,
-            top_p=0.9,
-            top_k=40,
+            top_p=0.95,
+            top_k=35,
             max_output_tokens=2048,
             thinking_config=types.ThinkingConfig(
                 thinking_budget=1127,
             ),
         )
+
+        system_prompt = "Du bist ein kreativer Texter, " \
+        "der inspirierende und motivierende Texte im Stil von Selbstfindungsbüchern schreibt. " \
+        "Verwende eine positive und ermutigende Sprache. Antworte nur mit dem Kunsttext, " \
+        "ohne Metadaten.Keine Titel. Keine Lables. Kein Chat"
+        
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            system_instruction=system_prompt  # <-- Hier gehört es hin!
+        )
+        
         
         # Generate content with retry logic
         max_retries = 1
         for attempt in range(max_retries):
             try:
-                response = client.models.generate_content(
-                    model=model_name,
+
+                response = model.generate_content(
                     contents=full_prompt,
                     config=generation_config
                 )
+                
                 elapsed = time.time() - start_time
                 logger.info(f"[GEMINI] Response received in {elapsed:.2f} seconds")
                 content = response.text.strip()

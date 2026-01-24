@@ -12,12 +12,12 @@ jobs:
     
     steps:
       - name: Ping Supabase Database
-        run: |
-          curl -X GET \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Content-Type: application/json" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/slips?select=id&limit=1"
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl -X GET \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            "${SUPABASE_URL}/rest/v1/slips?select=id&limit=1"

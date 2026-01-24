@@ -188,25 +188,16 @@
                 
                 // Show slip view with figure data
                 if (typeof SlipView !== 'undefined' && SlipView.show) {
-                    // Try to load data from Google Sheets if DataService is available
+                    // Try to load data from Supabase if DataService is available
                     if (typeof DataService !== 'undefined' && dataId) {
                         try {
-                            console.log('=== Loading Data from Google Sheets API ===');
+                            console.log('=== Loading Data from Supabase ===');
+                            console.log('🔍 Fetching data_id:', dataId);
                             
-                            // Always fetch fresh data from API
-                            console.log('⬇️ Fetching from Google Sheets API...');
-                            const data = await DataService.fetchSheetData();
-                            console.log('✅ Fetched', data.length, 'rows from Google Sheets');
-                            if (data.length > 0) {
-                                console.log('Sample row:', data[0]);
-                            }
+                            // Fetch figure data from Supabase
+                            const figureData = await DataService.getFigureData(dataId);
                             
-                            // Look up figure by data_id
-                            console.log('🔍 Looking up by data_id:', dataId);
-                            let figureData = DataService.lookupByDataId(data, dataId);
-                            
-                            if (figureData) {
-                                figureData = DataService.normalizeRowData(figureData);
+                            if (figureData && figureData.data_id) {
                                 console.log('✅ Found data:', figureData);
                                 SlipView.show(figureData);
                             } else {

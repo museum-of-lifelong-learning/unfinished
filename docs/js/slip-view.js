@@ -210,17 +210,23 @@ const SlipView = (function() {
     function setFigureImage(figureId) {
         if (!figureImage) return;
 
-        const paddedId = String(figureId).padStart(5, '0');
-        const imagePath = `assets/figures/figure-${paddedId}.svg`;
+        const id = parseInt(figureId, 10);
         
-        figureImage.src = imagePath;
-        figureImage.alt = `Figure ${paddedId}`;
+        // Use FigurineComposer to generate the figure at runtime
+        if (typeof FigurineComposer !== 'undefined' && FigurineComposer.isReady()) {
+            FigurineComposer.setImgSrc(figureImage, id, 400);  // Larger size for slip view
+        } else {
+            // Fallback: try to load precomposed image (for backwards compatibility)
+            const paddedId = String(figureId).padStart(5, '0');
+            const imagePath = `assets/figures/figure-${paddedId}.svg`;
+            figureImage.src = imagePath;
+        }
+        
+        figureImage.alt = `Figure ${id}`;
 
         // Handle image load error
         figureImage.onerror = function() {
             console.warn(`SlipView: Failed to load image for figure ${figureId}`);
-            // Optionally set a fallback image
-            // figureImage.src = 'assets/figures/placeholder.svg';
         };
     }
 

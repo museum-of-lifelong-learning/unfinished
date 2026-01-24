@@ -164,8 +164,8 @@
             const userFigureId = getFigureIdFromUrl();
             console.log('App: Initializing with figure', userFigureId);
 
-            // Initialize grid manager
-            GridManager.init(userFigureId);
+            // Initialize grid manager (now async - waits for shape preload)
+            await GridManager.init(userFigureId);
 
             // Get user position from grid manager
             const userPos = GridManager.userPosition;

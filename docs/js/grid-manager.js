@@ -1,5 +1,5 @@
 /**
- * Grid Manager - Simplified version
+ * Grid Manager - Simplified version with runtime figurine composition
  */
 const GridManager = (function() {
     'use strict';
@@ -9,8 +9,7 @@ const GridManager = (function() {
         gridCols: 165,
         gridRows: 164,
         bufferZone: 10,  // Increased for more aggressive preloading
-        cellGap: 8,
-        figurePath: 'assets/figures/figure-{id}.svg'
+        cellGap: 8
     };
 
     let state = {
@@ -86,10 +85,6 @@ const GridManager = (function() {
         return state.figureMapping.get(getKey(w.row, w.col)) || 1;
     }
 
-    function getFigurePath(id) {
-        return CONFIG.figurePath.replace('{id}', String(id).padStart(5, '0'));
-    }
-
     function getVisibleRange() {
         if (!state.scrollContainer) return null;
         const sl = state.scrollContainer.scrollLeft;
@@ -115,9 +110,7 @@ const GridManager = (function() {
         cell.className = 'figure-cell';
         const img = document.createElement('img');
         img.className = 'figure-cell__image';
-        img.loading = 'lazy';
         img.decoding = 'async';  // Non-blocking decode
-        img.fetchPriority = 'low';  // Don't block other resources
         cell.appendChild(img);
         
         cell.addEventListener('click', (e) => {
@@ -154,9 +147,11 @@ const GridManager = (function() {
         cell.dataset.figureId = figureId;
         
         const img = cell.querySelector('img');
-        const src = getFigurePath(figureId);
-        if (img.getAttribute('src') !== src) {
-            img.src = src;
+        // Use FigurineComposer to generate the figurine at runtime
+        const currentFigureId = parseInt(img.dataset.figureId, 10);
+        if (currentFigureId !== figureId) {
+            img.dataset.figureId = figureId;
+            FigurineComposer.setImgSrc(img, figureId, state.cellHeight);
             img.alt = `Figure ${figureId}`;
         }
         
@@ -348,7 +343,7 @@ const GridManager = (function() {
     }
 
     function init(userFigureId) {
-        if (state.isInitialized) return;
+        if (state.isInitialized) return Promise.resolve();
         
         state.userFigureId = userFigureId || 1;
         state.scrollContainer = document.getElementById('grid-container');
@@ -369,12 +364,15 @@ const GridManager = (function() {
         state.scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
         window.addEventListener('resize', () => { setupDimensions(); updateCells(); });
         
-        // Initial render and scroll to user
-        updateCells();
-        setTimeout(() => scrollToPosition(state.userGridRow, state.userGridCol, false), 50);
-        
-        state.isInitialized = true;
-        console.log(`GridManager: User figure ${state.userFigureId} at (${state.userGridRow}, ${state.userGridCol})`);
+        // Preload shapes before rendering
+        return FigurineComposer.preloadShapes().then(() => {
+            // Initial render and scroll to user
+            updateCells();
+            setTimeout(() => scrollToPosition(state.userGridRow, state.userGridCol, false), 50);
+            
+            state.isInitialized = true;
+            console.log(`GridManager: User figure ${state.userFigureId} at (${state.userGridRow}, ${state.userGridCol})`);
+        });
     }
 
     return {

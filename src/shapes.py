@@ -22,7 +22,7 @@ import math
 def draw_wide_semioval(h):
     """Shape 1: Squashed top-half semi-oval"""
     w = h * 2.5
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path = draw.Path(fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
     path.M(0, h).A(w/2, h, 0, 0, 1, w, h).L(w, h).Z()
     return path
 
@@ -30,25 +30,25 @@ def draw_wide_semioval(h):
 def draw_wide_rectangle(h):
     """Shape 2 & 5: Standard wide rectangle block"""
     w = h * 2.2
-    return draw.Rectangle(0, 0, w, h, fill='white', stroke='black', stroke_width=2)
+    return draw.Rectangle(0, 0, w, h, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_capsule_pill(h):
     """Shape 3: Flat-sided pill shape (capsule)"""
     w = h * 2.5
-    return draw.Rectangle(0, 0, w, h, rx=h/2, ry=h/2, fill='white', stroke='black', stroke_width=2)
+    return draw.Rectangle(0, 0, w, h, rx=h/2, ry=h/2, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_tapered_trapezoid(h):
     """Shape 4: Narrow-top trapezoid"""
     w = h * 2.5
-    return draw.Lines(w*0.35, 0, w*0.65, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(w*0.35, 0, w*0.65, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_blocky_trapezoid(h):
     """Shape 6: Steep-walled trapezoid"""
     w = h * 2.0
-    return draw.Lines(w*0.1, 0, w*0.9, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(w*0.1, 0, w*0.9, 0, w, h, 0, h, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 # --- Stacked & Composite Shapes ---
@@ -58,7 +58,7 @@ def draw_stepped_block(h):
     w = h * 2.2
     indent = w * 0.15
     group = draw.Group()
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path = draw.Path(fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
     path.M(indent, 0).L(w-indent, 0).L(w-indent, h/2)
     path.L(w, h/2).L(w, h).L(0, h).L(0, h/2).L(indent, h/2).Z()
     group.append(path)
@@ -69,7 +69,7 @@ def draw_sphere_circle(h):
     """A perfect circle/sphere shape"""
     r = h / 2
     # Circle centered at (r, r) means bounding box is (0, 0) to (h, h)
-    return draw.Circle(r, r, r, fill='white', stroke='black', stroke_width=2)
+    return draw.Circle(r, r, r, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 # --- Flat/Wide Shapes ---
@@ -77,20 +77,20 @@ def draw_sphere_circle(h):
 def draw_flat_pyramid(h):
     """Very flat pyramid (wide base, very low height)"""
     w = h * 4.0
-    return draw.Lines(0, h, w, h, w/2, 0, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(0, h, w, h, w/2, 0, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_flat_rectangle(h):
     """Very flat, wide rectangle"""
     w = h * 6.0
-    return draw.Rectangle(0, 0, w, h, fill='white', stroke='black', stroke_width=2)
+    return draw.Rectangle(0, 0, w, h, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_flat_pressed_oval(h):
     """Very flat, wide oval"""
     w = h * 4.0
     # Ellipse centered at (w/2, h/2) means bounding box is (0, 0) to (w, h)
-    return draw.Ellipse(w/2, h/2, w/2, h/2, fill='white', stroke='black', stroke_width=2)
+    return draw.Ellipse(w/2, h/2, w/2, h/2, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_flat_trapezoid(h):
@@ -99,7 +99,7 @@ def draw_flat_trapezoid(h):
     top_w = w * 0.7
     left_top_x = (w - top_w) / 2
     right_top_x = left_top_x + top_w
-    return draw.Lines(0, h, w, h, right_top_x, 0, left_top_x, 0, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(0, h, w, h, right_top_x, 0, left_top_x, 0, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 # --- Tall/Narrow Shapes ---
@@ -108,7 +108,7 @@ def draw_tall_pyramid(h):
     """Pyramid with base 2/3 of the height"""
     w = h * (2/3)
     # Draw from (0,0) origin - pyramid tip at (w/2, 0)
-    return draw.Lines(0, h, w, h, w/2, 0, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(0, h, w, h, w/2, 0, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_rhombus_udlr(h):
@@ -117,7 +117,7 @@ def draw_rhombus_udlr(h):
     # Draw from (0,0) origin - center at (w/2, h/2)
     cx = w / 2
     cy = h / 2
-    return draw.Lines(cx, 0, w, cy, cx, h, 0, cy, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(cx, 0, w, cy, cx, h, 0, cy, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 def draw_stacked_circles(h):
@@ -149,7 +149,7 @@ def draw_stacked_circles(h):
     right_x = cx + dx
     
     # Draw figure-8 outline: top arc of upper circle + bottom arc of lower circle
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path = draw.Path(fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
     
     # Start at left intersection point
     path.M(left_x, mid_y)
@@ -197,7 +197,7 @@ def draw_stacked_circles_custom(h):
     right_x = cx + h_intersect
     
     # Draw figure-8 outline
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path = draw.Path(fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
     
     # Start at left intersection point
     path.M(left_x, intersect_y)
@@ -215,7 +215,7 @@ def draw_upright_pill(h):
     """Pill standing upright, height 6 units, circumference 4 units."""
     width = 10 / math.pi
     w = h * (width / 6)
-    return draw.Rectangle(0, 0, w, h, rx=w/2, ry=w/2, fill='white', stroke='black', stroke_width=2)
+    return draw.Rectangle(0, 0, w, h, rx=w/2, ry=w/2, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 
 # --- New Custom Shapes ---
@@ -227,7 +227,7 @@ def draw_flat_pyramid_sockel(h):
     pyramid_h = h - sockel_h
     
     # Draw as single path to avoid internal line
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path = draw.Path(fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
     # Start at bottom-left, go clockwise
     path.M(0, h)  # Bottom left
     path.L(w, h)  # Bottom right
@@ -245,7 +245,7 @@ def draw_tall_trapezoid(h):
     top_w = w / 3
     left_top_x = (w - top_w) / 2
     right_top_x = left_top_x + top_w
-    return draw.Lines(0, h, w, h, right_top_x, 0, left_top_x, 0, close=True, fill='white', stroke='black', stroke_width=2)
+    return draw.Lines(0, h, w, h, right_top_x, 0, left_top_x, 0, close=True, fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
 
 def draw_stepped_block_3(h):
     """3-layer stepped block: bottom narrowest, middle widest, top medium."""
@@ -274,7 +274,7 @@ def draw_stepped_block_3(h):
     y_top = 0
     
     # Draw as single path to avoid internal lines
-    path = draw.Path(fill='white', stroke='black', stroke_width=2)
+    path = draw.Path(fill='white', stroke='black', stroke_width=2, vector_effect='non-scaling-stroke')
     
     # Start from bottom-left of bottom layer (narrowest), go clockwise
     path.M(bottom_x, y_bottom)
@@ -304,7 +304,7 @@ def draw_double_upright_pill(height):
     # Using width/4 creates two distinct rounded humps
     r = half_w / 2
     
-    path = draw.Path(stroke='black', stroke_width=2, fill='none')
+    path = draw.Path(stroke='black', stroke_width=2, fill='none', vector_effect='non-scaling-stroke')
 
     # 1. Start at the top-left side (just below the curve) - shifted to (0,0) origin
     path.M(0, r)
@@ -339,7 +339,7 @@ def draw_facing_bowls(height):
     # Side arc radius - higher number = flatter curve
     r_side = height * 0.8 
 
-    path = draw.Path(stroke='black', stroke_width=2, fill='none')
+    path = draw.Path(stroke='black', stroke_width=2, fill='none', vector_effect='non-scaling-stroke')
 
     # --- START TOP LEFT - shifted to (0,0) origin ---
     path.M(0, 0)

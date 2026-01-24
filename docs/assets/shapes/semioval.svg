@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="250.0" height="100" viewBox="0 0 250.0 100">
+<defs>
+</defs>
+<path d="M0,100 A125.0,100,0,0,1,250.0,100 L250.0,100 Z" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
+</svg>

@@ -189,14 +189,17 @@ const SlipView = (function() {
         if (resourceToolsEl) {
             const toolsContent = data.Resource_ToolsInspiration || PLACEHOLDER.resource;
             resourceToolsEl.innerHTML = toolsContent;
+            ensureLinksOpenInNewWindow(resourceToolsEl);
         }
         if (resourceAnlaufstellenEl) {
             const anlaufstellenContent = data.Resource_Anlaufstellen || PLACEHOLDER.resource;
             resourceAnlaufstellenEl.innerHTML = anlaufstellenContent;
+            ensureLinksOpenInNewWindow(resourceAnlaufstellenEl);
         }
         if (resourceProgrammEl) {
             const programmContent = data.Resource_Programm || PLACEHOLDER.resource;
             resourceProgrammEl.innerHTML = programmContent;
+            ensureLinksOpenInNewWindow(resourceProgrammEl);
         }
     }
 
@@ -254,13 +257,31 @@ const SlipView = (function() {
         // Set placeholder resources (using innerHTML for consistency)
         if (resourceToolsEl) {
             resourceToolsEl.innerHTML = PLACEHOLDER.resource;
+            ensureLinksOpenInNewWindow(resourceToolsEl);
         }
         if (resourceAnlaufstellenEl) {
             resourceAnlaufstellenEl.innerHTML = PLACEHOLDER.resource;
+            ensureLinksOpenInNewWindow(resourceAnlaufstellenEl);
         }
         if (resourceProgrammEl) {
             resourceProgrammEl.innerHTML = PLACEHOLDER.resource;
+            ensureLinksOpenInNewWindow(resourceProgrammEl);
         }
+    }
+
+    /**
+     * Ensure all links within an element open in a new window
+     * Adds target="_blank" and rel="noopener noreferrer" for security
+     * @param {HTMLElement} element - The element containing links
+     */
+    function ensureLinksOpenInNewWindow(element) {
+        if (!element) return;
+        
+        const links = element.querySelectorAll('a');
+        links.forEach(link => {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+        });
     }
 
     // Public API

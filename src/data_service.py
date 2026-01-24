@@ -495,12 +495,6 @@ class DataService:
                     'total_score': weighted_score
                 })
                 
-                logger.debug(
-                    f"Resource '{resource.get('Item', '')}': "
-                    f"mindset={mindset_score:.2f}, f05={f05_score:.2f}, "
-                    f"f06={f06_score:.2f}, total={weighted_score:.2f}"
-                )
-                
                 # Track best score
                 if weighted_score > best_score:
                     best_score = weighted_score

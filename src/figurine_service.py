@@ -16,7 +16,9 @@ from display_controller import auto_detect_display
 from printer_controller import auto_detect_printer, PrinterController
 
 # Import refactored modules
+from slip_data_generation import generate_slip_data
 from slip_printing import create_full_receipt
+from sheets_upload import upload_slip_data, build_qr_url
 import logging
 import data_service
 
@@ -117,7 +119,7 @@ AI Model:    {GEMINI_MODEL}
             # State: BORED / SCANNING
             logger.info("State: BORED (Scanning for 6 tags)")
             if display:
-                display.set_brightness(3)
+                display.set_brightness(2)
                 display.set_pattern("BORED")
             
             # Scan for tags with maximum reliability using multi-polling
@@ -145,7 +147,7 @@ AI Model:    {GEMINI_MODEL}
             answers = data_service.find_answer_by_tags([tag['epc'] for tag in tags_list])
             
             # sort the answers by Frage_ID to have consistent order
-            answers.sort(key=lambda x: x.get('Frage_ID', 0))
+            answers.sort(key=lambda x: x.get('Frage_ID', 0), reverse=True)
             
             logger.info("Tag Answers:")
             if answers:
@@ -179,7 +181,32 @@ AI Model:    {GEMINI_MODEL}
                     logger.info("[NO-PRINT MODE] Skipping receipt printing")
                     logger.info(f"Would have printed receipt for Figurine ID: {figurine_id}")
                 else:
-                    create_full_receipt(printer.printer, figurine_id, answers=answers, data_service=data_service, model_name=GEMINI_MODEL)
+                    # Generate all slip data first
+                    logger.info("Generating slip data...")
+                    slip_data = generate_slip_data(
+                        figurine_id=figurine_id,
+                        answers=answers,
+                        data_service=data_service,
+                        model_name=GEMINI_MODEL
+                    )
+                    
+                    # Upload to Google Sheets and get data_id
+                    logger.info("Uploading slip data to Google Sheets...")
+                    data_id = upload_slip_data(slip_data)
+                    
+                    if data_id:
+                        # Update QR URL with actual data_id
+                        slip_data['qr_url'] = build_qr_url(data_id, figurine_id)
+                        slip_data['data_id'] = data_id
+                        logger.info(f"Upload successful. data_id: {data_id}")
+                    else:
+                        logger.warning("Upload failed, using fallback QR URL")
+                        # Fallback URL without data_id
+                        slip_data['qr_url'] = f"https://museum-of-lifelong-learning.github.io/unfinished/?figure_id={figurine_id}"
+                    
+                    # Print the receipt with generated data
+                    logger.info("Printing slip...")
+                    create_full_receipt(printer.printer, slip_data)
                     logger.info("Receipt printed successfully.")
                     
                     log_temperatures()                

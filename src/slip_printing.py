@@ -1,10 +1,13 @@
+"""
+Slip Printing Module
+Handles the physical printing of receipts using pre-generated data.
+"""
+
 import logging
 import os
 import textwrap
+from typing import Dict, Any
 from PIL import Image
-from content_generation import generate_content_with_gemini
-from generate_figurine import generate_figurine
-from data_service import DataService, get_prevalent_mindset
 
 logger = logging.getLogger(__name__)
 
@@ -60,51 +63,22 @@ def print_labeled_section(printer, label: str, text: str):
         printer.textln(wrapped)
 
 
-def create_full_receipt(printer, figurine_id: int, answers: list, data_service: DataService, model_name: str = 'gemini-2.5-flash'):
-    """Generate and print the full receipt directly to the printer."""
-    logger.info(f"[RECEIPT] Generating receipt for #{figurine_id}")
+def create_full_receipt(printer, slip_data: Dict[str, Any]):
+    """
+    Print the full receipt using pre-generated data.
     
-    svg_list = []
-    mindset = None
+    Args:
+        printer: Printer instance to print to
+        slip_data: Dictionary containing all generated data from slip_data_generation
+    """
+    figurine_id = slip_data.get('figurine_id', 0)
+    logger.info(f"[PRINT] Printing receipt for #{figurine_id}")
     
-    if answers:
-        for ans in answers:
-            svg_val = ans.get('svg')
-            if svg_val and isinstance(svg_val, str):
-                svg_list.append(svg_val)
-        
-        mindset = get_prevalent_mindset(answers)
-        logger.info(f"Prevalent Mindset: {mindset}")
-
-    # Generate Title
-    title_text = None
-    if data_service:
-        word1 = data_service.get_random_title_word('primo')
-        # Use mindset if available, otherwise fallback (e.g. random or default)
-        category2 = mindset if mindset else 'Explorer'
-        word2 = data_service.get_random_title_word(category2)
-        
-        if word1 and word2 and word1 != "Unknown" and word2 != "Unknown":
-            title_text = f"{word1}\n{word2}"
-            logger.info(f"Generated Title: {title_text.replace(chr(10), ' ')}")
-    
-    # Generate figurine
-    from dotenv import load_dotenv
-    import os
-    from pathlib import Path
-    load_dotenv()
-    figurine_output_dir = os.getenv('FIGURINE_OUTPUT_DIR')
-    if not figurine_output_dir:
-        figurine_output_dir = str(Path(__file__).parent.parent / 'output')
-    figurine_path = generate_figurine(
-        svg_list,
-        output_path=str(Path(figurine_output_dir) / f'figurine_{figurine_id}.png'),
-        title_text=title_text,
-        figurine_id=figurine_id
-    )
-    
-    # Generate personalized content with Gemini API
-    content = generate_content_with_gemini(answers, data_service=data_service, figurine_id=figurine_id, model_name=model_name)
+    figurine_path = slip_data.get('figurine_path')
+    content = slip_data.get('content', {})
+    resources = slip_data.get('resources', {})
+    total_unique_ids = slip_data.get('total_unique_ids', 27000)
+    qr_url = slip_data.get('qr_url', f"https://figurati.ch/${figurine_id}")
     
     # === HEADER: Image ===
     if figurine_path and os.path.exists(figurine_path):
@@ -113,7 +87,7 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
     
     # Figurine number
     printer.set(align='center')
-    printer.textln(f"Lerncharakter {figurine_id} / {data_service.get_total_unique_ids()}")
+    printer.textln(f"Lerncharakter {figurine_id} / {total_unique_ids}")
     printer.ln()
     
     
@@ -132,19 +106,19 @@ def create_full_receipt(printer, figurine_id: int, answers: list, data_service: 
         printer.ln()
     
     # Labeled sections (bold labels)
-    categories = ["Tools & Inspiration", "Anlaufstellen & Angebote", "Programm-Empfehlung"]
+    categories = {
+        'tool': "Tools & Inspiration",
+        'location': "Anlaufstellen & Angebote",
+        'program': "Programm-Empfehlung"
+    }
     
-    for category in categories:
-        resource_recommendation = data_service.find_best_resource(
-            kategorie=category,
-            answers=answers
-        )
-        print_labeled_section(printer, f"{category}:", resource_recommendation.get('Item'))    
+    for key, label in categories.items():
+        resource_text = resources.get(key, f'No {label} available')
+        print_labeled_section(printer, f"{label}:", resource_text)    
         printer.ln()
     
     
     # === QR CODE ===
-    qr_url = f"https://figurati.ch/${figurine_id}"
     printer.set(align='center')
     printer.qr(qr_url, size=6)
     printer.ln()

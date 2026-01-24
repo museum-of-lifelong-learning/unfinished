@@ -10,3 +10,5 @@ pandas
 openpyxl
 cairosvg
 drawsvg
+gspread
+google-auth

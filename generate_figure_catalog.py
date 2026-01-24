@@ -26,15 +26,7 @@ try:
 except ImportError:
     GIF_SUPPORT = False
 
-# Level-specific shape assignments (same as test_all_shapes.py)
-LEVEL_SHAPES = {
-    1: ["capsule_pill", "semioval", "flat_pyramid_sockel", "stepped_block", "wide_rectangle"],
-    2: ["sphere_circle","sphere_circle","sphere_circle","sphere_circle","sphere_circle","sphere_circle"],
-    3: ["flat_rectangle","flat_rectangle","flat_rectangle","flat_rectangle","flat_rectangle","flat_rectangle"],
-    4: ["stepped_block_3", "stacked_circles_custom", "rhombus_udlr", "tall_trapezoid", "facing_bowls"],
-    5: ["tall_pyramid", "rhombus_udlr", "stacked_circles",  "double_upright_pill","stacked_circles"],
-    6: ["semioval","wide_rectangle", "capsule_pill", "flat_pyramid", "wide_rectangle", "flat_trapezoid"]
-}
+from data_service import DataService
 
 # Visual constants
 # Height ratios for each element (same as generate_figurine.py)
@@ -44,59 +36,43 @@ CELL_PADDING = 20  # Padding around each figure in its cell
 LABEL_HEIGHT = 20  # Height reserved for number label
 LABEL_FONT_SIZE = 12
 
+# Module-level DataService instance (lazy initialization)
+_data_service = None
+
+
+def get_data_service():
+    """Get or create a DataService instance."""
+    global _data_service
+    if _data_service is None:
+        _data_service = DataService()
+    return _data_service
+
 
 def get_answers_per_question():
-    """Get the number of answer options per level."""
-    return [len(LEVEL_SHAPES[i]) for i in range(1, 7)]
+    """Get the number of answer options per question (F01-F06 order, from Excel)."""
+    return get_data_service().get_answers_per_question()
 
 
 def get_total_combinations():
-    """Calculate total number of unique combinations."""
-    counts = get_answers_per_question()
-    total = 1
-    for count in counts:
-        total *= count
-    return total
+    """Calculate total number of unique combinations (from Excel)."""
+    return get_data_service().get_total_unique_ids()
 
 
 def id_to_shape_combination(figure_id):
     """
     Convert a figure ID (1 to 27000) to a shape combination.
-    Reverse of calculate_answer_set_id from data_service.py.
+    Uses DataService to read shape mapping from Excel.
     
     Args:
         figure_id: ID from 1 to total_combinations
         
     Returns:
-        List of 6 shape names (level 1 to 6, top to bottom)
+        List of 6 shape names (level 1 to 6, top to bottom for visual display)
+        Level 1 (top) = F06, Level 6 (bottom) = F01
     """
-    if figure_id < 1 or figure_id > get_total_combinations():
-        raise ValueError(f"ID must be between 1 and {get_total_combinations()}")
-    
-    # Convert to 0-indexed
-    id_value = figure_id - 1
-    
-    # Get answers per question
-    answers_per_question = get_answers_per_question()
-    
-    # Decode using mixed-radix system (reverse of encoding)
-    indices = []
-    for i in range(5, -1, -1):  # Right to left (level 6 to level 1)
-        if i == 5:
-            # Rightmost position
-            indices.insert(0, id_value % answers_per_question[i])
-            id_value //= answers_per_question[i]
-        else:
-            indices.insert(0, id_value % answers_per_question[i])
-            id_value //= answers_per_question[i]
-    
-    # Convert indices to shapes
-    shapes = []
-    for level in range(1, 7):
-        level_idx = level - 1
-        shape_idx = indices[level_idx]
-        shapes.append(LEVEL_SHAPES[level][shape_idx])
-    
+    shapes = get_data_service().id_to_shapes(figure_id)
+    if shapes is None:
+        raise ValueError(f"Invalid figure ID: {figure_id}")
     return shapes
 
 
@@ -203,8 +179,14 @@ def draw_figurine_in_cell(shapes, x_offset, y_offset, cell_width, cell_height, f
 
 def generate_all_combinations():
     """Generate all possible combinations of shapes."""
-    # Get shape options for each level
-    level_options = [LEVEL_SHAPES[i] for i in range(1, 7)]
+    # Get shape options for each level from DataService
+    ds = get_data_service()
+    shapes_by_question = ds.get_shapes_by_question()
+    
+    # Level 1 (top) = F06, Level 6 (bottom) = F01
+    level_options = [
+        shapes_by_question[f'F{7-level:02d}'] for level in range(1, 7)
+    ]
     
     # Generate all combinations
     all_combinations = list(itertools.product(*level_options))

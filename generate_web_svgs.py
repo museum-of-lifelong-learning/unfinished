@@ -3,8 +3,11 @@
 Generate individual SVG files for all 27,000 figurines for the website.
 Each SVG contains just the figurine stack without labels or extra padding.
 
+This script uses DataService to read shape mappings directly from Excel,
+ensuring consistency between the web SVGs and the figurine service.
+
 Usage:
-    python generate_web_svgs.py                    # Generate all 27,000 figures
+    python generate_web_svgs.py                    # Generate all figures
     python generate_web_svgs.py --single 12345    # Generate just figure 12345
     python generate_web_svgs.py --start 1000 --end 2000  # Generate range
     python generate_web_svgs.py --workers 8       # Use 8 parallel workers
@@ -12,8 +15,9 @@ Usage:
 import sys
 import argparse
 from pathlib import Path
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 import time
+from typing import List, Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
@@ -21,36 +25,77 @@ sys.path.insert(0, str(Path(__file__).parent / 'src'))
 import drawsvg as draw
 from shapes import get_shape, get_shape_width
 
-# Import from generate_figure_catalog
-from generate_figure_catalog import (
-    id_to_shape_combination,
-    TOKEN_HEIGHT_RATIOS,
-    FIGURINE_HEIGHT,
-    LEVEL_SHAPES,
-    get_total_combinations
-)
+# Visual constants for figurine rendering
+TOKEN_HEIGHT_RATIOS = [1.5, 3, 1, 6, 6, 1.5]  # Height ratios for levels 1-6
+FIGURINE_HEIGHT = 240  # Total height for each figurine stack
 
 # Output configuration
-OUTPUT_DIR = Path(__file__).parent / 'web' / 'assets' / 'figures'
-SVG_WIDTH = 200
-SVG_HEIGHT = 400
-PADDING_TOP = 10
-PADDING_BOTTOM = 10
+OUTPUT_DIR = Path(__file__).parent / 'docs' / 'assets' / 'figures'
 
 
-def generate_figurine_svg(figure_id: int) -> str:
+def get_data_service():
     """
-    Generate SVG content for a single figurine.
+    Get a DataService instance. Used for multiprocessing initialization.
+    Returns a new instance each time (for process safety).
+    """
+    from data_service import DataService
+    return DataService()
+
+
+# Module-level cache for single-process use
+_data_service = None
+
+
+def get_cached_data_service():
+    """Get or create a cached DataService instance for single-process use."""
+    global _data_service
+    if _data_service is None:
+        _data_service = get_data_service()
+    return _data_service
+
+
+def id_to_shapes(figure_id: int, data_service=None) -> Optional[List[str]]:
+    """
+    Convert a figure ID to its shape combination using DataService.
     
     Args:
-        figure_id: Figure ID (1 to 27000)
+        figure_id: ID from 1 to total_unique_ids
+        data_service: Optional DataService instance (creates one if not provided)
+        
+    Returns:
+        List of 6 shape names in visual order (top to bottom),
+        or None if conversion fails.
+    """
+    if data_service is None:
+        data_service = get_cached_data_service()
+    return data_service.id_to_shapes(figure_id)
+
+
+def get_total_combinations(data_service=None) -> int:
+    """
+    Get total number of unique figure combinations.
+    
+    Args:
+        data_service: Optional DataService instance
+        
+    Returns:
+        Total number of unique combinations (e.g., 27000)
+    """
+    if data_service is None:
+        data_service = get_cached_data_service()
+    return data_service.get_total_unique_ids()
+
+
+def generate_figurine_svg(shapes: List[str]) -> str:
+    """
+    Generate SVG content for a figurine with the given shapes.
+    
+    Args:
+        shapes: List of 6 shape names in visual order (top to bottom)
         
     Returns:
         SVG content as string
     """
-    # Get shape combination for this figure
-    shapes = id_to_shape_combination(figure_id)
-    
     # Calculate individual shape heights using token_height_ratios
     total_ratio = sum(TOKEN_HEIGHT_RATIOS)
     shape_heights = [FIGURINE_HEIGHT * ratio / total_ratio for ratio in TOKEN_HEIGHT_RATIOS]
@@ -98,19 +143,39 @@ def generate_figurine_svg(figure_id: int) -> str:
     return d.as_svg()
 
 
-def save_figurine_svg(figure_id: int, output_dir: Path = OUTPUT_DIR) -> str:
+def generate_figurine_svg_by_id(figure_id: int, data_service=None) -> Optional[str]:
+    """
+    Generate SVG content for a figurine by its ID.
+    
+    Args:
+        figure_id: Figure ID (1 to total_combinations)
+        data_service: Optional DataService instance
+        
+    Returns:
+        SVG content as string, or None if ID is invalid
+    """
+    shapes = id_to_shapes(figure_id, data_service)
+    if shapes is None:
+        return None
+    return generate_figurine_svg(shapes)
+
+
+def save_figurine_svg(figure_id: int, output_dir: Path = OUTPUT_DIR, data_service=None) -> Optional[str]:
     """
     Generate and save a single figurine SVG file.
     
     Args:
-        figure_id: Figure ID (1 to 27000)
+        figure_id: Figure ID (1 to total_combinations)
         output_dir: Directory to save the SVG file
+        data_service: Optional DataService instance
         
     Returns:
-        Path to saved file
+        Path to saved file, or None if generation failed
     """
     # Generate SVG content
-    svg_content = generate_figurine_svg(figure_id)
+    svg_content = generate_figurine_svg_by_id(figure_id, data_service)
+    if svg_content is None:
+        return None
     
     # Create filename with zero-padded ID
     filename = f"figure-{figure_id:05d}.svg"
@@ -123,11 +188,67 @@ def save_figurine_svg(figure_id: int, output_dir: Path = OUTPUT_DIR) -> str:
     return str(filepath)
 
 
-def worker_generate(args):
+# Global cache for multiprocessing worker initialization
+_worker_shapes_cache = None
+_worker_answers_per_question = None
+
+
+def _init_worker(shapes_by_question, answers_per_question):
+    """Initialize worker process with pre-loaded shape data."""
+    global _worker_shapes_cache, _worker_answers_per_question
+    _worker_shapes_cache = shapes_by_question
+    _worker_answers_per_question = answers_per_question
+
+
+def _id_to_shapes_cached(figure_id: int) -> Optional[List[str]]:
+    """Convert figure ID to shapes using cached data (for workers)."""
+    global _worker_shapes_cache, _worker_answers_per_question
+    
+    total = 1
+    for count in _worker_answers_per_question:
+        total *= count
+    
+    if figure_id < 1 or figure_id > total:
+        return None
+    
+    # Convert to 0-indexed
+    id_value = figure_id - 1
+    
+    # Decode using mixed-radix system
+    question_indices = [0] * 6
+    for i in range(5, -1, -1):
+        question_indices[i] = id_value % _worker_answers_per_question[i]
+        id_value //= _worker_answers_per_question[i]
+    
+    # Convert to shapes in visual order (top=F06 to bottom=F01)
+    shapes = []
+    for level in range(1, 7):
+        question_idx = 6 - level
+        question_key = f'F{question_idx + 1:02d}'
+        shape_idx = question_indices[question_idx]
+        shapes.append(_worker_shapes_cache[question_key][shape_idx])
+    
+    return shapes
+
+
+# Worker function for multiprocessing
+def _worker_generate(args):
     """Worker function for multiprocessing."""
     figure_id, output_dir = args
     try:
-        save_figurine_svg(figure_id, output_dir)
+        # Use cached shapes instead of loading Excel each time
+        shapes = _id_to_shapes_cached(figure_id)
+        if shapes is None:
+            return (figure_id, False, "Invalid figure ID")
+        
+        svg_content = generate_figurine_svg(shapes)
+        
+        # Save to file
+        filename = f"figure-{figure_id:05d}.svg"
+        filepath = Path(output_dir) / filename
+        with open(filepath, 'w') as f:
+            f.write(svg_content)
+        
         return (figure_id, True, None)
     except Exception as e:
         return (figure_id, False, str(e))
@@ -152,6 +273,11 @@ def generate_range(start_id: int, end_id: int, num_workers: int = 4, output_dir:
     print(f"Using {num_workers} workers")
     print()
     
+    # Pre-load shape data from DataService for all workers
+    ds = get_cached_data_service()
+    shapes_by_question = ds.get_shapes_by_question()
+    answers_per_question = ds.get_answers_per_question()
+    
     # Prepare arguments for workers
     work_items = [(i, output_dir) for i in range(start_id, end_id + 1)]
     
@@ -159,9 +285,13 @@ def generate_range(start_id: int, end_id: int, num_workers: int = 4, output_dir:
     completed = 0
     errors = []
     
-    # Use multiprocessing pool
-    with Pool(processes=num_workers) as pool:
-        for result in pool.imap_unordered(worker_generate, work_items, chunksize=50):
+    # Use multiprocessing pool with initializer to share shape data
+    with Pool(
+        processes=num_workers,
+        initializer=_init_worker,
+        initargs=(shapes_by_question, answers_per_question)
+    ) as pool:
+        for result in pool.imap_unordered(_worker_generate, work_items, chunksize=50):
             figure_id, success, error = result
             completed += 1
             
@@ -196,18 +326,20 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python generate_web_svgs.py                    # Generate all 27,000 figures
+    python generate_web_svgs.py                    # Generate all figures
     python generate_web_svgs.py --single 12345    # Generate just figure 12345
     python generate_web_svgs.py --start 1000 --end 2000  # Generate range
     python generate_web_svgs.py --workers 8       # Use 8 parallel workers
         """
     )
     
-    total_combinations = get_total_combinations()
+    # Get total combinations from DataService
+    ds = get_cached_data_service()
+    total_combinations = ds.get_total_unique_ids()
     
     parser.add_argument(
         '--start', type=int, default=1,
-        help=f'Start from this figure ID (default: 1)'
+        help='Start from this figure ID (default: 1)'
     )
     parser.add_argument(
         '--end', type=int, default=total_combinations,
@@ -240,27 +372,31 @@ Examples:
         # Generate single figure
         output_dir.mkdir(parents=True, exist_ok=True)
         print(f"Generating figure #{args.single:05d}...")
-        filepath = save_figurine_svg(args.single, output_dir)
-        print(f"Saved: {filepath}")
-        
-        # Also print the shape combination
-        shapes = id_to_shape_combination(args.single)
-        print(f"\nShape combination:")
-        for i, shape in enumerate(shapes, 1):
-            print(f"  Level {i}: {shape}")
+        filepath = save_figurine_svg(args.single, output_dir, ds)
+        if filepath:
+            print(f"Saved: {filepath}")
+            
+            # Also print the shape combination
+            shapes = id_to_shapes(args.single, ds)
+            print(f"\nShape combination:")
+            for i, shape in enumerate(shapes, 1):
+                print(f"  Level {i}: {shape}")
+        else:
+            print(f"Error: Failed to generate figure #{args.single}")
+            sys.exit(1)
     else:
         # Validate range
         if args.start < 1:
-            print(f"Error: --start must be at least 1")
+            print("Error: --start must be at least 1")
             sys.exit(1)
         if args.end > total_combinations:
             print(f"Error: --end must be at most {total_combinations}")
             sys.exit(1)
         if args.start > args.end:
-            print(f"Error: --start must be less than or equal to --end")
+            print("Error: --start must be less than or equal to --end")
             sys.exit(1)
         if args.workers < 1:
-            print(f"Error: --workers must be at least 1")
+            print("Error: --workers must be at least 1")
             sys.exit(1)
         
         # Generate range

@@ -244,6 +244,93 @@ class DataService:
             logger.error(f"Error calculating answers per question: {e}")
             return []
     
+    def get_shapes_by_question(self) -> Dict[str, List[str]]:
+        """
+        Get the shape (svg) names for each question from Excel data.
+        
+        Returns:
+            Dictionary mapping question IDs to lists of shape names.
+            E.g., {'F01': ['semioval', 'wide_rectangle', ...], 'F02': [...], ...}
+        """
+        if self.answers_df is None:
+            logger.error("No data loaded")
+            return {}
+        
+        try:
+            if 'svg' not in self.answers_df.columns:
+                logger.error("'svg' column not found in answers data")
+                return {}
+            
+            shapes_by_question = {}
+            for frage_id in sorted(self.answers_df['Frage_ID'].unique()):
+                filtered = self.answers_df[self.answers_df['Frage_ID'] == frage_id]
+                # Get shapes in order of Antwort_ID
+                shapes = filtered.sort_values('Antwort_ID')['svg'].tolist()
+                shapes_by_question[frage_id] = shapes
+            
+            return shapes_by_question
+            
+        except Exception as e:
+            logger.error(f"Error getting shapes by question: {e}")
+            return {}
+    
+    def id_to_shapes(self, figure_id: int) -> Optional[List[str]]:
+        """
+        Convert a figure ID to its shape combination.
+        Reverse of calculate_answer_set_id.
+        
+        Args:
+            figure_id: ID from 1 to total_unique_ids
+            
+        Returns:
+            List of 6 shape names in visual order (top to bottom: F06→F01),
+            or None if conversion fails.
+        """
+        if self.answers_df is None:
+            logger.error("No data loaded")
+            return None
+        
+        total = self.get_total_unique_ids()
+        if figure_id < 1 or figure_id > total:
+            logger.error(f"ID {figure_id} out of range [1, {total}]")
+            return None
+        
+        try:
+            # Get answers per question (F01-F06 order)
+            answers_per_question = self.get_answers_per_question()
+            if len(answers_per_question) != 6:
+                return None
+            
+            # Convert to 0-indexed
+            id_value = figure_id - 1
+            
+            # Decode using mixed-radix system (reverse of encoding)
+            # Indices are in F01-F06 order
+            question_indices = [0] * 6
+            for i in range(5, -1, -1):  # F06 to F01
+                question_indices[i] = id_value % answers_per_question[i]
+                id_value //= answers_per_question[i]
+            
+            # Get shapes from Excel
+            shapes_by_question = self.get_shapes_by_question()
+            if not shapes_by_question:
+                return None
+            
+            # Convert indices to shapes in visual order (top=F06 to bottom=F01)
+            shapes = []
+            for level in range(1, 7):
+                # Level 1 (top) = F06, Level 6 (bottom) = F01
+                question_idx = 6 - level  # Level 1 → 5 (F06), Level 6 → 0 (F01)
+                question_key = f'F{question_idx + 1:02d}'
+                shape_idx = question_indices[question_idx]
+                shapes.append(shapes_by_question[question_key][shape_idx])
+            
+            return shapes
+            
+        except Exception as e:
+            logger.error(f"Error converting ID {figure_id} to shapes: {e}")
+            return None
+
     def get_total_unique_ids(self) -> int:
         """
         Calculate the total number of unique answer set IDs possible.
@@ -268,6 +355,7 @@ class DataService:
         
         Args:
             answers: List of answer dictionaries (as returned by find_answer_by_tags)
+                     Can be in any order - will be sorted internally by Frage_ID.
         
         Returns:
             Unique ID from 1 to total_unique_ids, or None if calculation fails
@@ -287,10 +375,14 @@ class DataService:
                 logger.error(f"Expected 6 questions, got {len(answers_per_question)}")
                 return None
             
+            # IMPORTANT: Sort answers by Frage_ID ascending (F01, F02, ..., F06)
+            # This ensures consistent ID calculation regardless of input order
+            sorted_answers = sorted(answers, key=lambda x: x.get('Frage_ID', ''))
+            
             # For each answer, determine its index within its question
             answer_indices = []
             
-            for answer in answers:
+            for answer in sorted_answers:
                 question_id = answer.get('Frage_ID')
                 answer_id = answer.get('Antwort_ID')
                 

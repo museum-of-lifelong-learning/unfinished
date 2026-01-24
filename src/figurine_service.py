@@ -18,7 +18,7 @@ from printer_controller import auto_detect_printer, PrinterController
 # Import refactored modules
 from slip_data_generation import generate_slip_data
 from slip_printing import create_full_receipt
-from sheets_upload import upload_slip_data, build_qr_url
+from supabase_upload import upload_slip_data, build_qr_url
 import logging
 import data_service
 

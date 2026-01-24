@@ -172,12 +172,13 @@ const GridManager = (function() {
         
         for (let r = range.startRow; r <= range.endRow; r++) {
             for (let c = range.startCol; c <= range.endCol; c++) {
-                // Map infinite grid position to logical grid position
-                const logicalRow = ((r % CONFIG.gridRows) + CONFIG.gridRows) % CONFIG.gridRows;
-                const logicalCol = ((c % CONFIG.gridCols) + CONFIG.gridCols) % CONFIG.gridCols;
+                // Skip cells outside the grid boundaries
+                if (r < 0 || r >= CONFIG.gridRows || c < 0 || c >= CONFIG.gridCols) {
+                    continue;
+                }
                 
-                const fid = getFigureAt(logicalRow, logicalCol);
-                const isUser = (logicalRow === state.userGridRow && logicalCol === state.userGridCol);
+                const fid = getFigureAt(r, c);
+                const isUser = (r === state.userGridRow && c === state.userGridCol);
                 renderCell(r, c, fid, isUser);
                 newKeys.add(getKey(r, c));
             }
@@ -202,60 +203,104 @@ const GridManager = (function() {
         const ch = state.cellHeight + CONFIG.cellGap;
         const centerCol = Math.floor((state.scrollContainer.scrollLeft + state.scrollContainer.clientWidth/2) / cw);
         const centerRow = Math.floor((state.scrollContainer.scrollTop + state.scrollContainer.clientHeight/2) / ch);
-        const w = wrapPosition(centerRow, centerCol);
+        
+        // Calculate if user figure is visible and direction to it
+        const userVisibility = getUserFigureVisibility();
         
         state.gridElement.dispatchEvent(new CustomEvent('scrollUpdate', {
-            detail: { centerRow: w.row, centerCol: w.col, totalRows: CONFIG.gridRows, totalCols: CONFIG.gridCols },
+            detail: { 
+                centerRow, 
+                centerCol, 
+                totalRows: CONFIG.gridRows, 
+                totalCols: CONFIG.gridCols,
+                userVisible: userVisibility.visible,
+                userAngle: userVisibility.angle
+            },
             bubbles: true
         }));
+    }
+    
+    function getUserFigureVisibility() {
+        if (!state.scrollContainer) return { visible: true, angle: null };
+        
+        const cw = state.cellWidth + CONFIG.cellGap;
+        const ch = state.cellHeight + CONFIG.cellGap;
+        
+        // User figure position in pixels
+        const userX = state.userGridCol * cw + cw / 2;
+        const userY = state.userGridRow * ch + ch / 2;
+        
+        // Current viewport
+        const viewLeft = state.scrollContainer.scrollLeft;
+        const viewTop = state.scrollContainer.scrollTop;
+        const viewRight = viewLeft + state.scrollContainer.clientWidth;
+        const viewBottom = viewTop + state.scrollContainer.clientHeight;
+        
+        // Check if user is in viewport (with some margin)
+        const margin = Math.min(cw, ch) * 0.5;
+        const inViewX = userX > viewLeft + margin && userX < viewRight - margin;
+        const inViewY = userY > viewTop + margin && userY < viewBottom - margin;
+        
+        if (inViewX && inViewY) {
+            return { visible: true, angle: null };
+        }
+        
+        // Calculate exact angle to user figure
+        const viewCenterX = viewLeft + state.scrollContainer.clientWidth / 2;
+        const viewCenterY = viewTop + state.scrollContainer.clientHeight / 2;
+        
+        const dx = userX - viewCenterX;
+        const dy = userY - viewCenterY;
+        // Calculate angle in degrees (0° = right, 90° = down, -90° = up, ±180° = left)
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        return { visible: false, angle: angle };
     }
 
     function handleScroll() {
         if (state.scrollRAF) cancelAnimationFrame(state.scrollRAF);
         state.scrollRAF = requestAnimationFrame(() => {
-            handleScrollWrap();
+            clampScrollPosition();
             updateCells();
         });
     }
     
-    function handleScrollWrap() {
+    function clampScrollPosition() {
         if (!state.scrollContainer) return;
         
         const cw = state.cellWidth + CONFIG.cellGap;
         const ch = state.cellHeight + CONFIG.cellGap;
+        
+        // Calculate the actual grid dimensions (single grid, no tiling)
         const gridWidth = CONFIG.gridCols * cw;
         const gridHeight = CONFIG.gridRows * ch;
-        const maxWidth = gridWidth * 3;
-        const maxHeight = gridHeight * 3;
+        
+        // Calculate max scroll positions (grid size minus viewport size)
+        const maxScrollLeft = Math.max(0, gridWidth - state.scrollContainer.clientWidth);
+        const maxScrollTop = Math.max(0, gridHeight - state.scrollContainer.clientHeight);
         
         let sl = state.scrollContainer.scrollLeft;
         let st = state.scrollContainer.scrollTop;
-        let needsWrap = false;
+        let needsClamp = false;
         
-        // Wrap when going beyond the middle grid section boundaries
-        // Left boundary: wrap from left section to right section
-        if (sl < gridWidth * 0.5) {
-            sl += gridWidth;
-            needsWrap = true;
-        }
-        // Right boundary: wrap from right section to left section  
-        else if (sl > gridWidth * 2.5) {
-            sl -= gridWidth;
-            needsWrap = true;
+        // Clamp to boundaries
+        if (sl < 0) {
+            sl = 0;
+            needsClamp = true;
+        } else if (sl > maxScrollLeft) {
+            sl = maxScrollLeft;
+            needsClamp = true;
         }
         
-        // Top boundary: wrap from top section to bottom section
-        if (st < gridHeight * 0.5) {
-            st += gridHeight;
-            needsWrap = true;
-        }
-        // Bottom boundary: wrap from bottom section to top section
-        else if (st > gridHeight * 2.5) {
-            st -= gridHeight;
-            needsWrap = true;
+        if (st < 0) {
+            st = 0;
+            needsClamp = true;
+        } else if (st > maxScrollTop) {
+            st = maxScrollTop;
+            needsClamp = true;
         }
         
-        if (needsWrap) {
+        if (needsClamp) {
             state.scrollContainer.scrollTo({ left: sl, top: st, behavior: 'auto' });
         }
     }
@@ -272,9 +317,9 @@ const GridManager = (function() {
         const cw = state.cellWidth + CONFIG.cellGap;
         const ch = state.cellHeight + CONFIG.cellGap;
         
-        // Make grid 3x larger in each dimension for seamless wrapping
-        state.gridElement.style.width = `${CONFIG.gridCols * cw * 3}px`;
-        state.gridElement.style.height = `${CONFIG.gridRows * ch * 3}px`;
+        // Single grid (no tiling) - finite boundaries
+        state.gridElement.style.width = `${CONFIG.gridCols * cw}px`;
+        state.gridElement.style.height = `${CONFIG.gridRows * ch}px`;
     }
 
     function scrollToPosition(row, col, smooth = true) {
@@ -282,35 +327,20 @@ const GridManager = (function() {
         const cw = state.cellWidth + CONFIG.cellGap;
         const ch = state.cellHeight + CONFIG.cellGap;
         
-        // Get current scroll position in grid coordinates
-        const currentCol = (state.scrollContainer.scrollLeft + state.scrollContainer.clientWidth / 2) / cw;
-        const currentRow = (state.scrollContainer.scrollTop + state.scrollContainer.clientHeight / 2) / ch;
+        // Calculate target position (center the cell in viewport)
+        const x = col * cw - state.scrollContainer.clientWidth / 2 + cw / 2;
+        const y = row * ch - state.scrollContainer.clientHeight / 2 + ch / 2;
         
-        // Find the closest instance of the target position in the 3x3 tiled grid
-        // Target can appear at: col, col+gridCols, col+2*gridCols (and same for rows)
-        let bestCol = col + CONFIG.gridCols;
-        let bestRow = row + CONFIG.gridRows;
-        let minDist = Infinity;
+        // Clamp to valid scroll range
+        const gridWidth = CONFIG.gridCols * cw;
+        const gridHeight = CONFIG.gridRows * ch;
+        const maxScrollLeft = Math.max(0, gridWidth - state.scrollContainer.clientWidth);
+        const maxScrollTop = Math.max(0, gridHeight - state.scrollContainer.clientHeight);
         
-        for (let tileRow = 0; tileRow < 3; tileRow++) {
-            for (let tileCol = 0; tileCol < 3; tileCol++) {
-                const candidateCol = col + tileCol * CONFIG.gridCols;
-                const candidateRow = row + tileRow * CONFIG.gridRows;
-                const dist = Math.sqrt(
-                    Math.pow(candidateCol - currentCol, 2) + 
-                    Math.pow(candidateRow - currentRow, 2)
-                );
-                if (dist < minDist) {
-                    minDist = dist;
-                    bestCol = candidateCol;
-                    bestRow = candidateRow;
-                }
-            }
-        }
+        const clampedX = Math.max(0, Math.min(x, maxScrollLeft));
+        const clampedY = Math.max(0, Math.min(y, maxScrollTop));
         
-        const x = bestCol * cw - state.scrollContainer.clientWidth / 2 + cw / 2;
-        const y = bestRow * ch - state.scrollContainer.clientHeight / 2 + ch / 2;
-        state.scrollContainer.scrollTo({ left: Math.max(0,x), top: Math.max(0,y), behavior: smooth ? 'smooth' : 'auto' });
+        state.scrollContainer.scrollTo({ left: clampedX, top: clampedY, behavior: smooth ? 'smooth' : 'auto' });
     }
 
     function scrollToUserFigure() {

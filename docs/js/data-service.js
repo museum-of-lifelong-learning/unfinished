@@ -1,226 +1,215 @@
 /**
  * Data Service for Figurine Gallery
- * Handles all data fetching and caching from Google Sheets
+ * Handles all data fetching from Google Sheets via API
  */
 
 const DataService = (function() {
     // Configuration
     const CONFIG = {
-        SHEET_URL: 'https://docs.google.com/spreadsheets/d/16Ww-LsbFi6SqtoJglpMt0UxJ1uaPNXRcYCo1aTuIYLE/export?format=csv&gid=0',
         TOTAL_FIGURES: 27000,
-        CACHE_EXPIRY_MS: 60 * 1000, // 1 minute in milliseconds
-        STORAGE_KEY: 'figurine_gallery_data'
+        // Google Sheets API configuration
+        // TODO: Replace YOUR_API_KEY_HERE with your restricted API key
+        // Will be moved to Supabase later
+        API_KEY: 'AIzaSyDhyLNCEn_mA5RCTYfDGNOSzPAlpY_1bIo',
+        DEFAULT_SHEET_ID: '16Ww-LsbFi6SqtoJglpMt0UxJ1uaPNXRcYCo1aTuIYLE',
+        SHEET_RANGE: 'A:H' // Columns: data_id, figure_id, title, Paragraph1, Paragraph2, Resource_ToolsInspiration, Resource_Anlaufstellen, Resource_Programm
     };
 
     // Default/placeholder values for missing data
     const DEFAULT_FIGURE_DATA = {
-        UUID: null,
-        FigureID: null,
-        Word1: 'Unknown',
-        Word2: 'Figure',
+        data_id: null,
+        figure_id: null,
+        title: 'Unknown Figure',
         Paragraph1: 'No description available for this figure.',
         Paragraph2: '',
         Resource_ToolsInspiration: '',
         Resource_Anlaufstellen: '',
-        Resource_Programm: '',
-        Footer: ''
+        Resource_Programm: ''
     };
 
     /**
-     * Extract figure ID (1-27000) from the last 5 digits of a UUID
-     * @param {string} uuid - The full UUID string
-     * @returns {number|null} - Figure ID or null if invalid
+     * Set the API key for Google Sheets API
+     * @param {string} key - The API key
      */
-    function extractFigureIdFromUUID(uuid) {
-        if (!uuid || typeof uuid !== 'string') {
-            return null;
-        }
-
-        // Remove any non-alphanumeric characters and get last 5 characters
-        const cleaned = uuid.replace(/[^a-zA-Z0-9]/g, '');
-        
-        if (cleaned.length < 5) {
-            return null;
-        }
-
-        const lastFive = cleaned.slice(-5);
-        
-        // Convert to number (treating as base-36 or decimal depending on content)
-        let figureId;
-        
-        // If it's all digits, parse as decimal
-        if (/^\d+$/.test(lastFive)) {
-            figureId = parseInt(lastFive, 10);
-        } else {
-            // Otherwise, use a hash-like approach to get a number
-            let hash = 0;
-            for (let i = 0; i < lastFive.length; i++) {
-                const char = lastFive.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32-bit integer
-            }
-            figureId = Math.abs(hash);
-        }
-
-        // Ensure it's within range 1-27000
-        figureId = ((figureId - 1) % CONFIG.TOTAL_FIGURES) + 1;
-        
-        return figureId;
+    function setApiKey(key) {
+        CONFIG.API_KEY = key;
     }
 
     /**
-     * Parse the `?id=` parameter from the current URL
-     * @returns {string|null} - UUID from URL or null if not present
+     * Get the figure_id from URL parameter
+     * @returns {number|null} - Figure ID or null
      */
-    function getUUIDFromUrl() {
+    function getFigureIdFromUrl() {
         try {
             const urlParams = new URLSearchParams(window.location.search);
-            const id = urlParams.get('id');
-            return id ? id.trim() : null;
+            const figureId = urlParams.get('figure_id');
+            if (figureId) {
+                const parsed = parseInt(figureId, 10);
+                if (!isNaN(parsed) && parsed >= 1 && parsed <= CONFIG.TOTAL_FIGURES) {
+                    return parsed;
+                }
+            }
+            return null;
         } catch (error) {
-            console.error('Error parsing URL parameters:', error);
+            console.error('Error getting figure_id from URL:', error);
             return null;
         }
     }
 
     /**
-     * Fetch and parse CSV data from Google Sheets using Papa Parse
+     * Get the data_id from URL parameter
+     * @returns {string|null} - Data ID (UUID) or null
+     */
+    function getDataIdFromUrl() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataId = urlParams.get('data_id');
+            return dataId ? dataId.trim() : null;
+        } catch (error) {
+            console.error('Error getting data_id from URL:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get the sheet ID from URL parameter (optional override)
+     * @returns {string} - Sheet ID (default if not provided)
+     */
+    function getSheetIdFromUrl() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('sheet') || urlParams.get('sheetId') || CONFIG.DEFAULT_SHEET_ID;
+        } catch (error) {
+            console.error('Error getting sheet ID from URL:', error);
+            return CONFIG.DEFAULT_SHEET_ID;
+        }
+    }
+
+    /**
+     * Build Google Sheets API URL
+     * @param {string} sheetId - The Google Sheet ID
+     * @param {string} apiKey - The API key
+     * @returns {string} - The API URL
+     */
+    function buildApiUrl(sheetId, apiKey) {
+        const range = encodeURIComponent(CONFIG.SHEET_RANGE);
+        return 'https://sheets.googleapis.com/v4/spreadsheets/' + sheetId + '/values/' + range + '?key=' + apiKey;
+    }
+
+    /**
+     * Fetch data from Google Sheets API
+     * @param {string} sheetId - The Google Sheet ID (optional, uses URL param or default)
      * @returns {Promise<Array>} - Array of row objects
      */
-    async function fetchSheetData() {
-        return new Promise((resolve, reject) => {
-            // Check if Papa Parse is available
-            if (typeof Papa === 'undefined') {
-                reject(new Error('Papa Parse library is not loaded'));
-                return;
-            }
+    async function fetchSheetData(sheetId) {
+        const apiKey = CONFIG.API_KEY;
+        const finalSheetId = sheetId || getSheetIdFromUrl();
 
-            Papa.parse(CONFIG.SHEET_URL, {
-                download: true,
-                header: true,
-                skipEmptyLines: true,
-                transformHeader: (header) => header.trim(),
-                complete: (results) => {
-                    if (results.errors && results.errors.length > 0) {
-                        console.warn('CSV parsing warnings:', results.errors);
-                    }
-                    resolve(results.data);
-                },
-                error: (error) => {
-                    console.error('Failed to fetch sheet data:', error);
-                    reject(new Error(`Failed to fetch data from Google Sheets: ${error.message}`));
-                }
-            });
-        });
-    }
+        if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+            throw new Error('Google Sheets API key is not configured. Please add your API key to data-service.js');
+        }
 
-    /**
-     * Get cached data from localStorage if not expired
-     * @returns {Object|null} - Cached data object or null if expired/missing
-     */
-    function getCachedData() {
+        const url = buildApiUrl(finalSheetId, apiKey);
+        console.log('Fetching from Google Sheets API...');
+
         try {
-            const cached = localStorage.getItem(CONFIG.STORAGE_KEY);
+            const response = await fetch(url);
             
-            if (!cached) {
-                return null;
+            if (!response.ok) {
+                const errorData = await response.json().catch(function() { return {}; });
+                const errorMsg = errorData.error ? errorData.error.message : response.statusText;
+                throw new Error('API Error ' + response.status + ': ' + errorMsg);
             }
 
-            const parsed = JSON.parse(cached);
-            const now = Date.now();
-
-            // Check if cache has expired
-            if (parsed.timestamp && (now - parsed.timestamp) < CONFIG.CACHE_EXPIRY_MS) {
-                return parsed.data;
+            const data = await response.json();
+            
+            if (!data.values || data.values.length < 2) {
+                console.warn('No data found in sheet');
+                return [];
             }
 
-            // Cache expired, remove it
-            localStorage.removeItem(CONFIG.STORAGE_KEY);
-            return null;
+            // First row is headers
+            const headers = data.values[0].map(function(h) { return h.trim(); });
+            const rows = data.values.slice(1);
+
+            // Convert to array of objects
+            const result = rows.map(function(row) {
+                const obj = {};
+                headers.forEach(function(header, index) {
+                    obj[header] = row[index] || '';
+                });
+                return obj;
+            }).filter(function(row) { 
+                return Object.values(row).some(function(v) { return v; }); 
+            });
+
+            console.log('Fetched ' + result.length + ' rows from Google Sheets');
+            return result;
+
         } catch (error) {
-            console.error('Error reading cached data:', error);
-            // Clear potentially corrupted cache
-            localStorage.removeItem(CONFIG.STORAGE_KEY);
-            return null;
+            console.error('Failed to fetch sheet data:', error);
+            throw error;
         }
     }
 
     /**
-     * Save data to localStorage with timestamp
-     * @param {Array} data - Data to cache
-     */
-    function setCachedData(data) {
-        try {
-            const cacheObject = {
-                timestamp: Date.now(),
-                data: data
-            };
-            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(cacheObject));
-        } catch (error) {
-            console.error('Error caching data:', error);
-            // localStorage might be full or disabled
-            // Continue without caching
-        }
-    }
-
-    /**
-     * Find a row by exact UUID match
+     * Find a row by exact data_id match
      * @param {Array} data - Array of row objects
-     * @param {string} uuid - UUID to search for
+     * @param {string} dataId - data_id (UUID) to search for
      * @returns {Object|null} - Matching row or null
      */
-    function lookupByUUID(data, uuid) {
-        if (!uuid || !data || !Array.isArray(data)) {
-            console.warn('lookupByUUID: Invalid parameters', { uuid, dataIsArray: Array.isArray(data) });
+    function lookupByDataId(data, dataId) {
+        if (!dataId || !data || !Array.isArray(data)) {
+            console.warn('lookupByDataId: Invalid parameters', { dataId: dataId, dataIsArray: Array.isArray(data) });
             return null;
         }
 
-        const normalizedUUID = uuid.trim().toLowerCase();
-        console.log('Searching for UUID:', normalizedUUID, 'in', data.length, 'rows');
+        const normalizedDataId = dataId.trim().toLowerCase();
+        console.log('Searching for data_id:', normalizedDataId, 'in', data.length, 'rows');
         
-        const found = data.find(row => {
-            const rowUUID = row.UUID || row.uuid;
-            return rowUUID && rowUUID.trim().toLowerCase() === normalizedUUID;
+        const found = data.find(function(row) {
+            const rowDataId = row.data_id || row.dataId || row.DataId;
+            return rowDataId && rowDataId.trim().toLowerCase() === normalizedDataId;
         });
         
         if (found) {
-            console.log('✅ UUID match found:', found);
+            console.log('data_id match found:', found);
         } else {
-            console.warn('❌ No UUID match found for:', normalizedUUID);
+            console.warn('No data_id match found for:', normalizedDataId);
         }
         
         return found || null;
     }
 
     /**
-     * Fallback lookup by figure ID
+     * Find a row by figure_id
      * @param {Array} data - Array of row objects
      * @param {number} figureId - Figure ID (1-27000)
      * @returns {Object|null} - Matching row or null
      */
-    function lookupByFigureID(data, figureId) {
+    function lookupByFigureId(data, figureId) {
         if (!figureId || !data || !Array.isArray(data)) {
-            console.warn('lookupByFigureID: Invalid parameters', { figureId, dataIsArray: Array.isArray(data) });
+            console.warn('lookupByFigureId: Invalid parameters', { figureId: figureId, dataIsArray: Array.isArray(data) });
             return null;
         }
 
         const targetId = parseInt(figureId, 10);
         
         if (isNaN(targetId) || targetId < 1 || targetId > CONFIG.TOTAL_FIGURES) {
-            console.warn('lookupByFigureID: Invalid figure ID', targetId);
+            console.warn('lookupByFigureId: Invalid figure ID', targetId);
             return null;
         }
 
-        console.log('Searching for figure ID', targetId, 'in', data.length, 'rows');
-        const found = data.find(row => {
-            const rowFigureId = parseInt(row.FigureID || row.figureId || row.figureid, 10);
+        console.log('Searching for figure_id', targetId, 'in', data.length, 'rows');
+        const found = data.find(function(row) {
+            const rowFigureId = parseInt(row.figure_id || row.figureId || row.FigureId, 10);
             return rowFigureId === targetId;
         });
         
         if (found) {
             console.log('Found matching row:', found);
         } else {
-            console.warn('No matching row found for figure ID', targetId);
+            console.warn('No matching row found for figure_id', targetId);
         }
         
         return found || null;
@@ -229,134 +218,83 @@ const DataService = (function() {
     /**
      * Normalize row data to consistent format with defaults
      * @param {Object} row - Raw row data
-     * @param {string} uuid - Original UUID used for lookup
      * @returns {Object} - Normalized figure data
      */
-    function normalizeRowData(row, uuid) {
+    function normalizeRowData(row) {
+        // Parse title into two words if it contains a space
+        const title = row.title || row.Title || '';
+        const titleParts = title.split(' ');
+        const word1 = titleParts[0] || 'Unknown';
+        const word2 = titleParts.slice(1).join(' ') || 'Figure';
+        
         return {
-            UUID: row.UUID || row.uuid || uuid,
-            FigureID: parseInt(row.FigureID || row.figureId || row.figureid, 10) || extractFigureIdFromUUID(uuid),
-            Word1: row.Word1 || row.word1 || DEFAULT_FIGURE_DATA.Word1,
-            Word2: row.Word2 || row.word2 || DEFAULT_FIGURE_DATA.Word2,
+            data_id: row.data_id || row.dataId || null,
+            figure_id: parseInt(row.figure_id || row.figureId || 0, 10),
+            title: title,
+            Word1: word1,
+            Word2: word2,
             Paragraph1: row.Paragraph1 || row.paragraph1 || DEFAULT_FIGURE_DATA.Paragraph1,
             Paragraph2: row.Paragraph2 || row.paragraph2 || DEFAULT_FIGURE_DATA.Paragraph2,
             Resource_ToolsInspiration: row.Resource_ToolsInspiration || row.resource_toolsinspiration || '',
             Resource_Anlaufstellen: row.Resource_Anlaufstellen || row.resource_anlaufstellen || '',
-            Resource_Programm: row.Resource_Programm || row.resource_programm || '',
-            Footer: row.Footer || row.footer || ''
+            Resource_Programm: row.Resource_Programm || row.resource_programm || ''
         };
     }
 
     /**
-     * Main function: Get figure data by UUID
-     * Tries exact UUID lookup, falls back to figure ID derived from UUID
-     * @param {string} uuid - UUID to look up
+     * Main function: Get figure data by data_id
+     * Always fetches fresh data from API (no caching)
+     * @param {string} dataId - data_id (UUID) to look up
      * @returns {Promise<Object|null>} - Figure data or null
      */
-    async function getFigureData(uuid) {
-        if (!uuid) {
-            console.warn('No UUID provided');
+    async function getFigureData(dataId) {
+        if (!dataId) {
+            console.warn('No data_id provided');
             return null;
         }
 
         try {
-            // Try to get cached data first
-            let data = getCachedData();
+            // Always fetch fresh data
+            const data = await fetchSheetData();
 
-            // If no cached data, fetch fresh
-            if (!data) {
-                data = await fetchSheetData();
-                setCachedData(data);
-            }
+            // Look up by data_id
+            const row = lookupByDataId(data, dataId);
 
-            // Try exact UUID match first
-            let row = lookupByUUID(uuid, data);
-
-            // If no exact match, try figure ID lookup
+            // If no match, return default
             if (!row) {
-                const figureId = extractFigureIdFromUUID(uuid);
-                if (figureId) {
-                    row = lookupByFigureID(figureId, data);
-                }
+                console.warn('No data found for data_id:', dataId);
+                return Object.assign({}, DEFAULT_FIGURE_DATA, { data_id: dataId });
             }
 
-            // If still no match, return default with extracted ID
-            if (!row) {
-                const figureId = extractFigureIdFromUUID(uuid);
-                return {
-                    ...DEFAULT_FIGURE_DATA,
-                    UUID: uuid,
-                    FigureID: figureId
-                };
-            }
-
-            return normalizeRowData(row, uuid);
+            return normalizeRowData(row);
 
         } catch (error) {
             console.error('Error getting figure data:', error);
-            // Return default data with what we can extract
-            const figureId = extractFigureIdFromUUID(uuid);
-            return {
-                ...DEFAULT_FIGURE_DATA,
-                UUID: uuid,
-                FigureID: figureId,
+            return Object.assign({}, DEFAULT_FIGURE_DATA, { 
+                data_id: dataId,
                 Paragraph1: 'Unable to load figure data. Please try again later.'
-            };
-        }
-    }
-
-    /**
-     * Clear the data cache
-     */
-    function clearCache() {
-        localStorage.removeItem(CONFIG.STORAGE_KEY);
-    }
-
-    /**
-     * Get cache status information
-     * @returns {Object} - Cache status info
-     */
-    function getCacheStatus() {
-        try {
-            const cached = localStorage.getItem(CONFIG.STORAGE_KEY);
-            if (!cached) {
-                return { cached: false, timestamp: null, age: null, expired: true };
-            }
-
-            const parsed = JSON.parse(cached);
-            const now = Date.now();
-            const age = now - parsed.timestamp;
-            const expired = age >= CONFIG.CACHE_EXPIRY_MS;
-
-            return {
-                cached: true,
-                timestamp: new Date(parsed.timestamp).toISOString(),
-                age: Math.round(age / 1000 / 60), // age in minutes
-                expired: expired,
-                recordCount: parsed.data ? parsed.data.length : 0
-            };
-        } catch (error) {
-            return { cached: false, timestamp: null, age: null, expired: true, error: error.message };
+            });
         }
     }
 
     // Public API
     return {
         // Configuration (read-only)
-        CONFIG: Object.freeze({ ...CONFIG }),
+        CONFIG: Object.freeze(Object.assign({}, CONFIG)),
+        
+        // Setup
+        setApiKey: setApiKey,
+        
+        // URL parameter getters
+        getFigureIdFromUrl: getFigureIdFromUrl,
+        getDataIdFromUrl: getDataIdFromUrl,
+        getSheetIdFromUrl: getSheetIdFromUrl,
         
         // Core functions
-        extractFigureIdFromUUID,
-        getUUIDFromUrl,
-        fetchSheetData,
-        getCachedData,
-        setCachedData,
-        lookupByUUID,
-        lookupByFigureID,
-        getFigureData,
-        
-        // Utility functions
-        clearCache,
-        getCacheStatus
+        fetchSheetData: fetchSheetData,
+        lookupByDataId: lookupByDataId,
+        lookupByFigureId: lookupByFigureId,
+        normalizeRowData: normalizeRowData,
+        getFigureData: getFigureData
     };
 })();

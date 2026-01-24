@@ -4,24 +4,22 @@
 (function() {
     'use strict';
 
-    // Extract figure ID from URL (last 5 digits of UUID)
+    // Get figure_id from URL parameter (uses DataService)
     function getFigureIdFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const uuid = params.get('id');
-        if (uuid && uuid.length >= 5) {
-            const last5 = uuid.slice(-5);
-            const figureId = parseInt(last5, 10);
-            if (figureId >= 1 && figureId <= 27000) {
-                return figureId;
-            }
+        if (typeof DataService !== 'undefined') {
+            const figureId = DataService.getFigureIdFromUrl();
+            if (figureId) return figureId;
         }
+        // Fallback: random figure if no valid figure_id provided
         return Math.floor(Math.random() * 27000) + 1;
     }
     
-    // Get full UUID from URL
-    function getUuidFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('id') || null;
+    // Get data_id from URL parameter (uses DataService)
+    function getDataIdFromUrl() {
+        if (typeof DataService !== 'undefined') {
+            return DataService.getDataIdFromUrl();
+        }
+        return null;
     }
 
     // Simple minimap controller
@@ -108,6 +106,52 @@
             this.viewport.style.display = 'block';
         }
     };
+    
+    // Direction arrow controller
+    const DirectionArrowController = {
+        arrow: null,
+        icon: null,
+        
+        init() {
+            this.arrow = document.getElementById('direction-arrow');
+            this.icon = this.arrow?.querySelector('.direction-arrow__icon');
+            
+            if (!this.arrow) {
+                console.warn('Direction arrow element not found');
+                return;
+            }
+            
+            // Click to navigate to user figure
+            this.arrow.addEventListener('click', () => {
+                GridManager.scrollToUserFigure();
+            });
+            
+            console.log('Direction arrow initialized');
+        },
+        
+        update(userVisible, angle) {
+            if (!this.arrow) return;
+            
+            if (userVisible || angle === null) {
+                // Hide the arrow
+                this.arrow.classList.remove('direction-arrow--visible');
+            } else {
+                // Show arrow and rotate it to point in exact direction
+                // The arrow icon (↑) points up by default, which is -90° in our coordinate system
+                // So we need to rotate by (angle + 90) to point in the correct direction
+                const rotation = angle + 90;
+                
+                // Apply rotation transform
+                this.arrow.style.transform = `rotate(${rotation}deg)`;
+                this.arrow.classList.add('direction-arrow--visible');
+                
+                // Always use up arrow icon since we're rotating the whole element
+                if (this.icon) {
+                    this.icon.textContent = '↑';
+                }
+            }
+        }
+    };
 
     // Initialize the app
     async function init() {
@@ -128,6 +172,9 @@
             
             // Initialize minimap
             MinimapController.init(userPos.row, userPos.col);
+            
+            // Initialize direction arrow
+            DirectionArrowController.init();
 
             // Listen for figure clicks (bubbles up from grid)
             gridContainer.addEventListener('figureClick', async (e) => {
@@ -135,68 +182,55 @@
                 console.log('=== Figure Click Event ===');
                 console.log('Figure ID:', figureId, 'Is User Figure:', isUserFigure);
                 
-                // Get UUID from URL
-                const uuid = getUuidFromUrl();
-                console.log('UUID from URL:', uuid);
+                // Get data_id from URL
+                const dataId = getDataIdFromUrl();
+                console.log('data_id from URL:', dataId);
                 
                 // Show slip view with figure data
                 if (typeof SlipView !== 'undefined' && SlipView.show) {
                     // Try to load data from Google Sheets if DataService is available
-                    if (typeof DataService !== 'undefined') {
+                    if (typeof DataService !== 'undefined' && dataId) {
                         try {
-                            console.log('=== Loading Data from Google Sheets ===');
+                            console.log('=== Loading Data from Google Sheets API ===');
                             
-                            // Fetch data from cache or Google Sheets
-                            let data = DataService.getCachedData();
-                            if (!data) {
-                                console.log('❌ No cache found');
-                                console.log('⬇️ Fetching from Google Sheets...');
-                                console.log('URL:', DataService.CONFIG.SHEET_URL);
-                                data = await DataService.fetchSheetData();
-                                console.log('✅ Fetched', data.length, 'rows from Google Sheets');
+                            // Always fetch fresh data from API
+                            console.log('⬇️ Fetching from Google Sheets API...');
+                            const data = await DataService.fetchSheetData();
+                            console.log('✅ Fetched', data.length, 'rows from Google Sheets');
+                            if (data.length > 0) {
                                 console.log('Sample row:', data[0]);
-                                DataService.setCachedData(data);
-                                console.log('💾 Data cached');
-                            } else {
-                                console.log('✅ Using cached data:', data.length, 'rows');
                             }
                             
-                            // Look up figure by UUID first, then by ID
-                            let figureData = null;
-                            if (uuid) {
-                                console.log('🔍 Looking up by UUID:', uuid);
-                                figureData = DataService.lookupByUUID(data, uuid);
-                            }
-                            
-                            if (!figureData) {
-                                console.log('🔍 UUID lookup failed, trying by Figure ID:', figureId);
-                                figureData = DataService.lookupByFigureID(data, figureId);
-                            }
+                            // Look up figure by data_id
+                            console.log('🔍 Looking up by data_id:', dataId);
+                            let figureData = DataService.lookupByDataId(data, dataId);
                             
                             if (figureData) {
+                                figureData = DataService.normalizeRowData(figureData);
                                 console.log('✅ Found data:', figureData);
                                 SlipView.show(figureData);
                             } else {
-                                console.warn('❌ No data found - showing placeholder');
-                                SlipView.show({ figureId, isUserFigure });
+                                console.warn('❌ No data found for data_id - showing placeholder');
+                                SlipView.show({ figure_id: figureId, isUserFigure });
                             }
                         } catch (error) {
                             console.error('❌ Error loading figure data:', error);
                             console.error('Stack:', error.stack);
                             // Fallback to placeholder on error
-                            SlipView.show({ figureId, isUserFigure });
+                            SlipView.show({ figure_id: figureId, isUserFigure });
                         }
                     } else {
-                        console.warn('❌ DataService not available, showing placeholder');
-                        // DataService not available, show placeholder
-                        SlipView.show({ figureId, isUserFigure });
+                        console.warn('❌ DataService not available or no data_id, showing placeholder');
+                        // DataService not available or no data_id, show placeholder
+                        SlipView.show({ figure_id: figureId, isUserFigure });
                     }
                 }
             });
 
-            // Listen for scroll updates (for minimap)
+            // Listen for scroll updates (for minimap and direction arrow)
             gridContainer.addEventListener('scrollUpdate', (e) => {
                 MinimapController.update(e.detail);
+                DirectionArrowController.update(e.detail.userVisible, e.detail.userAngle);
             });
 
             // Home button (additional one if exists)

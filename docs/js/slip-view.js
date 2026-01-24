@@ -20,7 +20,7 @@ const SlipView = (function() {
     // Default/placeholder content
     const PLACEHOLDER = {
         word1: 'Dein',
-        word2: 'Charakter.',
+        word2: 'Charakter',
         paragraph1: 'Dies ist dein einzigartiger Charakter aus der Figurine Gallery.',
         paragraph2: 'Erkunde die Galerie und entdecke 27.000 weitere Charaktere.',
         resource: 'Keine Daten verfügbar'
@@ -124,12 +124,9 @@ const SlipView = (function() {
             return;
         }
 
-        // Populate content
-        if (figureData && figureData.FigureID) {
+        // Populate content - check for both old and new field names
+        if (figureData && (figureData.figure_id || figureData.FigureID || figureData.figureId)) {
             populateContent(figureData);
-        } else if (figureData && figureData.figureId) {
-            // If only figureId is provided, show placeholder
-            showPlaceholder(figureData.figureId);
         } else {
             console.error('SlipView: No figure data provided');
             return;
@@ -160,8 +157,10 @@ const SlipView = (function() {
      * @param {Object} data - Figure data from Google Sheets
      */
     function populateContent(data) {
+        // Get figure ID from various possible field names
+        const figureId = data.figure_id || data.FigureID || data.figureId;
+        
         // Set figure image
-        const figureId = data.FigureID || data.figureId;
         setFigureImage(figureId);
 
         // Set title words
@@ -175,7 +174,7 @@ const SlipView = (function() {
         // Set character number
         if (characterNumberEl) {
             const paddedId = String(figureId).padStart(5, '0');
-            characterNumberEl.textContent = `#${paddedId}`;
+            characterNumberEl.textContent = `${figureId}`;
         }
 
         // Set paragraphs
@@ -186,15 +185,18 @@ const SlipView = (function() {
             paragraph2El.textContent = data.Paragraph2 || PLACEHOLDER.paragraph2;
         }
 
-        // Set resource sections
+        // Set resource sections (using innerHTML to support HTML links)
         if (resourceToolsEl) {
-            resourceToolsEl.textContent = data.Resource_ToolsInspiration || PLACEHOLDER.resource;
+            const toolsContent = data.Resource_ToolsInspiration || PLACEHOLDER.resource;
+            resourceToolsEl.innerHTML = toolsContent;
         }
         if (resourceAnlaufstellenEl) {
-            resourceAnlaufstellenEl.textContent = data.Resource_Anlaufstellen || PLACEHOLDER.resource;
+            const anlaufstellenContent = data.Resource_Anlaufstellen || PLACEHOLDER.resource;
+            resourceAnlaufstellenEl.innerHTML = anlaufstellenContent;
         }
         if (resourceProgrammEl) {
-            resourceProgrammEl.textContent = data.Resource_Programm || PLACEHOLDER.resource;
+            const programmContent = data.Resource_Programm || PLACEHOLDER.resource;
+            resourceProgrammEl.innerHTML = programmContent;
         }
     }
 
@@ -249,15 +251,15 @@ const SlipView = (function() {
             paragraph2El.textContent = PLACEHOLDER.paragraph2;
         }
 
-        // Set placeholder resources
+        // Set placeholder resources (using innerHTML for consistency)
         if (resourceToolsEl) {
-            resourceToolsEl.textContent = PLACEHOLDER.resource;
+            resourceToolsEl.innerHTML = PLACEHOLDER.resource;
         }
         if (resourceAnlaufstellenEl) {
-            resourceAnlaufstellenEl.textContent = PLACEHOLDER.resource;
+            resourceAnlaufstellenEl.innerHTML = PLACEHOLDER.resource;
         }
         if (resourceProgrammEl) {
-            resourceProgrammEl.textContent = PLACEHOLDER.resource;
+            resourceProgrammEl.innerHTML = PLACEHOLDER.resource;
         }
     }
 

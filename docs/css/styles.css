@@ -316,24 +316,22 @@ p {
 /* Selected/Highlighted Figure */
 .figure-cell--selected {
   border-color: var(--color-highlight);
-  box-shadow: var(--shadow-glow);
-  animation: glow-pulse 2s ease-in-out infinite;
+  border-width: 4px;
+  border-style: solid;
 }
 
 .figure-cell--selected:hover {
-  box-shadow: var(--shadow-glow), var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 
-/* User's Own Figure - prominent highlight */
+/* User's Own Figure - prominent solid yellow border */
 .figure-cell--user {
-  border: 3px solid var(--color-highlight);
-  box-shadow: var(--shadow-glow);
-  animation: glow-pulse 2s ease-in-out infinite;
+  border: 4px solid var(--color-highlight);
   z-index: 10;
 }
 
 .figure-cell--user:hover {
-  box-shadow: var(--shadow-glow), var(--shadow-lg);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-4px);
 }
 
@@ -402,6 +400,8 @@ p {
   transition: 
     transform var(--timing-fast) var(--ease-out),
     box-shadow var(--timing-fast) var(--ease-out);
+  /* Hide minimap */
+  display: none;
 }
 
 .minimap:hover,
@@ -489,6 +489,45 @@ p {
 }
 
 /* ==========================================================================
+   Direction Arrow (points to user figure when out of view)
+   ========================================================================== */
+.direction-arrow {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin-left: -24px;
+  margin-top: -24px;
+  width: 48px;
+  height: 48px;
+  background-color: var(--color-highlight);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: var(--z-minimap);
+  box-shadow: var(--shadow-lg);
+  transition: opacity var(--timing-fast) var(--ease-out);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.direction-arrow--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.direction-arrow:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+.direction-arrow__icon {
+  font-size: 24px;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+/* ==========================================================================
    Slip Overlay Styles
    ========================================================================== */
 /* Backdrop */
@@ -523,6 +562,8 @@ p {
   width: calc(100% - var(--space-8));
   display: flex;
   flex-direction: column;
+  font-family: var(--font-family-mono);
+  letter-spacing: -0.02em;
   transform: scale(0.9) translateY(20px);
   opacity: 0;
   visibility: hidden;
@@ -566,7 +607,7 @@ p {
 }
 
 .slip__title {
-  font-family: var(--font-family-serif);
+  font-family: 'Noto Sans', var(--font-family-sans);
   font-size: var(--font-size-2xl);
   font-weight: 600;
   color: var(--color-text-primary);
@@ -699,8 +740,8 @@ p {
 }
 
 .slip__figure-preview svg {
-  width: 150px;
-  height: 150px;
+  width: 172px;
+  height: 172px;
   object-fit: contain;
 }
 
@@ -1069,8 +1110,8 @@ p {
   }
   
   .slip__figure-preview svg {
-    width: 180px;
-    height: 180px;
+    width: 207px;
+    height: 207px;
   }
   
   .minimap {
@@ -1106,8 +1147,8 @@ p {
   }
   
   .slip__figure-preview svg {
-    width: 200px;
-    height: 200px;
+    width: 230px;
+    height: 230px;
   }
   
   .minimap {
@@ -1199,6 +1240,7 @@ p {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  font-family: var(--font-family-mono);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -1216,11 +1258,13 @@ p {
 .slip-content-wrapper {
   background: var(--color-slip-bg, #ffffff);
   border-radius: var(--slip-border-radius, 12px);
-  max-width: var(--slip-max-width, 600px);
+  max-width: 450px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  font-family: var(--font-family-mono);
+  letter-spacing: -0.02em;
 }
 
 .slip-close-btn {
@@ -1253,61 +1297,117 @@ p {
 .slip-figure-container {
   position: relative;
   width: 100%;
-  padding: 2rem;
+  padding: 1rem 2rem;
   display: flex;
   justify-content: center;
 }
 
 .slip-figure-image {
-  max-width: 200px;
+  max-width: 207px;
   height: auto;
 }
 
-.slip-word-overlay {
+.slip-title-overlay {
   position: absolute;
-  bottom: 2rem;
+  top: 45%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
+}
+
+.slip-title {
+  font-family: 'Noto Sans', var(--font-family-sans);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
   text-align: center;
 }
 
 .slip-word {
   display: block;
+  font-family: 'Noto Sans', var(--font-family-sans);
   font-weight: bold;
   font-size: 1.5rem;
   margin: 0.25rem 0;
 }
 
-.slip-character-id,
-.slip-body-content,
-.slip-resources {
-  padding: 1.5rem 2rem;
+.slip-character-id {
+  padding: 0.5rem 1.5rem;
+  text-align: center;
 }
 
-.slip-title {
-  font-size: 1.25rem;
-  font-weight: 600;
+.slip-character-number {
+  /* font-size: 0.875rem; */
+  /* color: #666; */
   margin: 0;
 }
 
+.slip-body-content,
+.slip-resources {
+  padding: 0.5rem 1rem;
+}
+
+.slip-title {
+  font-family: 'Noto Sans', var(--font-family-sans);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
 .slip-paragraph {
-  margin: 1rem 0;
+  margin: 0.5rem 0;
   line-height: 1.6;
 }
 
 .slip-resource-section {
-  margin: 1.5rem 0;
+  margin: 0.5rem 0;
+  text-align: left;
+}
+
+.slip-resource-line {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+  text-align: left;
 }
 
 .slip-resource-label {
   font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  margin-right: 0.5rem;
 }
 
 .slip-resource-content {
-  margin: 0.5rem 0;
-  line-height: 1.6;
+  font-weight: normal;
+}
+
+.slip-footer {
+  padding: 0.75rem 1rem;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.slip-footer-tagline,
+.slip-footer-thanks,
+.slip-footer-museum {
+  margin: 0.25rem 0;
+  line-height: 1.4;
+}
+
+.slip-footer-tagline {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.slip-footer-thanks {
+  font-size: 0.95rem;
+  /* color: #666; */
+}
+
+.slip-footer-museum {
+  /* font-size: 0.9rem; */
+  margin-top: 1rem;
 }
 
 /* ==========================================================================

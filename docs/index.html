@@ -6,17 +6,13 @@
     <meta name="description" content="Figurine Gallery - Explore 27,000 unique figurine characters from Unfinished by Design">
     <meta name="theme-color" content="#1a1a2e">
     
-    <title>Figurine Gallery | Unfinished by Design</title>
+    <title>Figurine Gallery | Unfinished</title>
     
     <!-- Preconnect to external resources -->
-    <link rel="preconnect" href="https://docs.google.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://sheets.googleapis.com">
     
     <!-- Styles -->
     <link rel="stylesheet" href="css/styles.css">
-    
-    <!-- Papa Parse for CSV parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
     <!-- Skip link for accessibility -->
@@ -65,6 +61,16 @@
         </button>
     </nav>
     
+    <!-- Direction arrow (shows when user figure is out of view) -->
+    <button 
+        id="direction-arrow" 
+        class="direction-arrow"
+        aria-label="Navigate to your character"
+        title="Zu deinem Charakter navigieren"
+    >
+        <span class="direction-arrow__icon" aria-hidden="true">↑</span>
+    </button>
+    
     <!-- Slip overlay container (hidden by default) -->
     <div 
         id="slip-overlay" 
@@ -86,7 +92,7 @@
         
         <!-- Slip content wrapper (scrollable) -->
         <div class="slip-content-wrapper" role="document">
-            <!-- Header with figure image and word overlay -->
+            <!-- Header with figure image and title overlay -->
             <header class="slip-header">
                 <div class="slip-figure-container">
                     <img 
@@ -95,18 +101,20 @@
                         src="" 
                         alt="Your figurine character"
                     >
-                    <div class="slip-word-overlay">
-                        <span id="slip-word1" class="slip-word slip-word1"></span>
-                        <span id="slip-word2" class="slip-word slip-word2"></span>
+                    <div class="slip-title-overlay">
+                        <h1 id="slip-title" class="slip-title">
+                            <span id="slip-word1" class="slip-word slip-word1"></span>
+                            <span id="slip-word2" class="slip-word slip-word2"></span>
+                        </h1>
                     </div>
                 </div>
             </header>
             
-            <!-- Character ID section -->
+            <!-- Character ID section below figure -->
             <section class="slip-character-id" aria-label="Character identification">
-                <h1 id="slip-title" class="slip-title">
-                    Charakter <span id="slip-character-number">0</span> / 27000
-                </h1>
+                <p class="slip-character-number">
+                    Lerncharakter <span id="slip-character-number">0</span> / 27000
+                </p>
             </section>
             
             <!-- Main content section -->
@@ -120,29 +128,34 @@
             <section class="slip-resources" aria-label="Resources and recommendations">
                 <!-- Resource 1: Tools & Inspiration -->
                 <div class="slip-resource-section">
-                    <h2 class="slip-resource-label">Tools & Inspiration:</h2>
-                    <p id="slip-resource-tools" class="slip-resource-content"></p>
+                    <p class="slip-resource-line">
+                        <span class="slip-resource-label">Tools & Inspiration:</span>
+                        <span id="slip-resource-tools" class="slip-resource-content"></span>
+                    </p>
                 </div>
                 
                 <!-- Resource 2: Anlaufstellen & Angebote -->
                 <div class="slip-resource-section">
-                    <h2 class="slip-resource-label">Anlaufstellen & Angebote:</h2>
-                    <p id="slip-resource-anlaufstellen" class="slip-resource-content"></p>
+                    <p class="slip-resource-line">
+                        <span class="slip-resource-label">Anlaufstellen & Angebote:</span>
+                        <span id="slip-resource-anlaufstellen" class="slip-resource-content"></span>
+                    </p>
                 </div>
                 
                 <!-- Resource 3: Programm-Empfehlung -->
                 <div class="slip-resource-section">
-                    <h2 class="slip-resource-label">Programm-Empfehlung:</h2>
-                    <p id="slip-resource-programm" class="slip-resource-content"></p>
+                    <p class="slip-resource-line">
+                        <span class="slip-resource-label">Programm-Empfehlung:</span>
+                        <span id="slip-resource-programm" class="slip-resource-content"></span>
+                    </p>
                 </div>
             </section>
             
             <!-- Footer section -->
             <footer class="slip-footer">
-                <p class="slip-footer-tagline">Bleib unfertig.</p>
-                <p class="slip-footer-thanks">Vielen Dank für deinen Besuch.</p>
+                <p class="slip-footer-thanks">Bleib unfertig.<br>Vielen Dank für deinen Besuch.</p>
                 <p class="slip-footer-museum">
-                    <strong>Unfinished by Design –</strong><br>
+                    <strong>Unfinished</strong><br>
                     <strong>The Museum of Lifelong Learning</strong>
                 </p>
             </footer>

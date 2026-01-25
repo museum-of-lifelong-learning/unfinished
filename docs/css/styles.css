@@ -299,7 +299,6 @@ p {
     transform var(--timing-normal) var(--ease-out),
     box-shadow var(--timing-normal) var(--ease-out),
     border-color var(--timing-normal) var(--ease-out);
-  will-change: transform, box-shadow;
 }
 
 /* .figure-cell:hover {
@@ -333,6 +332,7 @@ p {
 .figure-cell--user:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-4px);
+  will-change: transform, box-shadow;
 }
 
 /* Figure SVG Container */

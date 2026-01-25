@@ -17,15 +17,6 @@ const SlipView = (function() {
     let resourceAnlaufstellenEl = null;
     let resourceProgrammEl = null;
 
-    // Default/placeholder content
-    const PLACEHOLDER = {
-        word1: 'Dein',
-        word2: 'Charakter',
-        paragraph1: 'Dies ist dein einzigartiger Charakter aus der Figurine Gallery.',
-        paragraph2: 'Erkunde die Galerie und entdecke 27.000 weitere Charaktere.',
-        resource: 'Keine Daten verfügbar'
-    };
-
     /**
      * Initialize the slip view module
      * Sets up DOM references and event listeners
@@ -165,39 +156,38 @@ const SlipView = (function() {
 
         // Set title words
         if (word1El) {
-            word1El.textContent = data.Word1 || PLACEHOLDER.word1;
+            word1El.textContent = data.Word1 || '';
         }
         if (word2El) {
-            word2El.textContent = data.Word2 || PLACEHOLDER.word2;
+            word2El.textContent = data.Word2 || '';
         }
 
         // Set character number
         if (characterNumberEl) {
-            const paddedId = String(figureId).padStart(5, '0');
             characterNumberEl.textContent = `${figureId}`;
         }
 
         // Set paragraphs
         if (paragraph1El) {
-            paragraph1El.textContent = data.Paragraph1 || PLACEHOLDER.paragraph1;
+            paragraph1El.textContent = data.Paragraph1 || '';
         }
         if (paragraph2El) {
-            paragraph2El.textContent = data.Paragraph2 || PLACEHOLDER.paragraph2;
+            paragraph2El.textContent = data.Paragraph2 || '';
         }
 
         // Set resource sections (using innerHTML to support HTML links)
         if (resourceToolsEl) {
-            const toolsContent = data.Resource_ToolsInspiration || PLACEHOLDER.resource;
+            const toolsContent = data.Resource_ToolsInspiration || '';
             resourceToolsEl.innerHTML = toolsContent;
             ensureLinksOpenInNewWindow(resourceToolsEl);
         }
         if (resourceAnlaufstellenEl) {
-            const anlaufstellenContent = data.Resource_Anlaufstellen || PLACEHOLDER.resource;
+            const anlaufstellenContent = data.Resource_Anlaufstellen || '';
             resourceAnlaufstellenEl.innerHTML = anlaufstellenContent;
             ensureLinksOpenInNewWindow(resourceAnlaufstellenEl);
         }
         if (resourceProgrammEl) {
-            const programmContent = data.Resource_Programm || PLACEHOLDER.resource;
+            const programmContent = data.Resource_Programm || '';
             resourceProgrammEl.innerHTML = programmContent;
             ensureLinksOpenInNewWindow(resourceProgrammEl);
         }
@@ -231,51 +221,6 @@ const SlipView = (function() {
     }
 
     /**
-     * Show placeholder content when data is not available
-     * @param {number|string} figureId - The figure ID
-     */
-    function showPlaceholder(figureId) {
-        // Set figure image
-        setFigureImage(figureId);
-
-        // Set placeholder title words
-        if (word1El) {
-            word1El.textContent = PLACEHOLDER.word1;
-        }
-        if (word2El) {
-            word2El.textContent = PLACEHOLDER.word2;
-        }
-
-        // Set character number
-        if (characterNumberEl) {
-            const paddedId = String(figureId).padStart(5, '0');
-            characterNumberEl.textContent = `#${paddedId}`;
-        }
-
-        // Set placeholder paragraphs
-        if (paragraph1El) {
-            paragraph1El.textContent = PLACEHOLDER.paragraph1;
-        }
-        if (paragraph2El) {
-            paragraph2El.textContent = PLACEHOLDER.paragraph2;
-        }
-
-        // Set placeholder resources (using innerHTML for consistency)
-        if (resourceToolsEl) {
-            resourceToolsEl.innerHTML = PLACEHOLDER.resource;
-            ensureLinksOpenInNewWindow(resourceToolsEl);
-        }
-        if (resourceAnlaufstellenEl) {
-            resourceAnlaufstellenEl.innerHTML = PLACEHOLDER.resource;
-            ensureLinksOpenInNewWindow(resourceAnlaufstellenEl);
-        }
-        if (resourceProgrammEl) {
-            resourceProgrammEl.innerHTML = PLACEHOLDER.resource;
-            ensureLinksOpenInNewWindow(resourceProgrammEl);
-        }
-    }
-
-    /**
      * Ensure all links within an element open in a new window
      * Adds target="_blank" and rel="noopener noreferrer" for security
      * @param {HTMLElement} element - The element containing links
@@ -297,7 +242,6 @@ const SlipView = (function() {
         hide: hide,
         populateContent: populateContent,
         setFigureImage: setFigureImage,
-        showPlaceholder: showPlaceholder,
         isOpen: isOpen
     };
 })();

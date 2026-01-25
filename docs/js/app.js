@@ -4,21 +4,47 @@
 (function() {
     'use strict';
 
+    // Store the figure ID that we're displaying (from URL or random)
+    let displayedFigureId = null;
+
     // Get figure_id from URL parameter (uses DataService)
     function getFigureIdFromUrl() {
         if (typeof DataService !== 'undefined') {
             const figureId = DataService.getFigureIdFromUrl();
             if (figureId) return figureId;
         }
-        // Fallback: random figure if no valid figure_id provided
-        return Math.floor(Math.random() * 27000) + 1;
+        
+        // Check if we already have a random figure in session
+        const sessionFigureId = sessionStorage.getItem('figurine_random_figure_id');
+        if (sessionFigureId) {
+            const parsed = parseInt(sessionFigureId, 10);
+            if (!isNaN(parsed)) {
+                console.log('Using stored random figure_id from session:', parsed);
+                return parsed;
+            }
+        }
+        
+        // Fallback: generate random figure and store it for the session
+        const randomFigureId = Math.floor(Math.random() * 27000) + 1;
+        sessionStorage.setItem('figurine_random_figure_id', randomFigureId.toString());
+        console.log('Generated and stored new random figure_id:', randomFigureId);
+        return randomFigureId;
     }
     
     // Get data_id from URL parameter (uses DataService)
     function getDataIdFromUrl() {
         if (typeof DataService !== 'undefined') {
-            return DataService.getDataIdFromUrl();
+            const dataId = DataService.getDataIdFromUrl();
+            if (dataId) return dataId;
         }
+        
+        // Check if we already have a random data_id in session
+        const sessionDataId = sessionStorage.getItem('figurine_random_data_id');
+        if (sessionDataId) {
+            console.log('Using stored random data_id from session:', sessionDataId);
+            return sessionDataId;
+        }
+        
         return null;
     }
 
@@ -162,6 +188,7 @@
         try {
             // Get user figure
             const userFigureId = getFigureIdFromUrl();
+            displayedFigureId = userFigureId; // Store for slip view
             console.log('App: Initializing with figure', userFigureId);
 
             // Initialize grid manager (now async - waits for shape preload)
@@ -182,38 +209,41 @@
                 console.log('=== Figure Click Event ===');
                 console.log('Figure ID:', figureId, 'Is User Figure:', isUserFigure);
                 
-                // Get data_id from URL
-                const dataId = getDataIdFromUrl();
-                console.log('data_id from URL:', dataId);
-                
                 // Show slip view with figure data
                 if (typeof SlipView !== 'undefined' && SlipView.show) {
-                    // Try to load data from Supabase if DataService is available
-                    if (typeof DataService !== 'undefined' && dataId) {
+                    if (typeof DataService !== 'undefined') {
                         try {
                             console.log('=== Loading Data from Supabase ===');
-                            console.log('🔍 Fetching data_id:', dataId);
+                            
+                            // Get data_id from URL
+                            const dataId = getDataIdFromUrl();
+                            console.log('data_id from URL:', dataId);
                             
                             // Fetch figure data from Supabase
+                            // If data_id is provided, use it. Otherwise, fetch random data.
                             const figureData = await DataService.getFigureData(dataId);
                             
-                            if (figureData && figureData.data_id) {
-                                console.log('✅ Found data:', figureData);
+                            if (figureData) {
+                                console.log('✅ Loaded data:', figureData);
+                                
+                                // If we fetched random data (no data_id was in URL), store it for the session
+                                if (!dataId && figureData.data_id) {
+                                    sessionStorage.setItem('figurine_random_data_id', figureData.data_id);
+                                    console.log('Stored random data_id for session:', figureData.data_id);
+                                }
+                                
+                                // Override figure_id with the displayed figure from URL/random
+                                figureData.figure_id = displayedFigureId;
                                 SlipView.show(figureData);
                             } else {
-                                console.warn('❌ No data found for data_id - showing placeholder');
-                                SlipView.show({ figure_id: figureId, isUserFigure });
+                                console.error('❌ Failed to load data from Supabase');
                             }
                         } catch (error) {
                             console.error('❌ Error loading figure data:', error);
                             console.error('Stack:', error.stack);
-                            // Fallback to placeholder on error
-                            SlipView.show({ figure_id: figureId, isUserFigure });
                         }
                     } else {
-                        console.warn('❌ DataService not available or no data_id, showing placeholder');
-                        // DataService not available or no data_id, show placeholder
-                        SlipView.show({ figure_id: figureId, isUserFigure });
+                        console.error('❌ DataService not available');
                     }
                 }
             });

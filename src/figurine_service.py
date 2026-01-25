@@ -136,6 +136,16 @@ def main():
 ╚════════════════════════════════════════╝
 """
     print(status_msg)
+    
+    # Print status message on thermal printer when available
+    if not isinstance(printer.printer, type(None)):
+        try:
+            printer.printer.text(status_msg)
+            printer.printer.cut()
+            logger.info("Status message printed on thermal printer")
+        except Exception as e:
+            logger.error(f"Failed to print status message: {e}")
+    
     logger.info("Service status check complete")
     
     if not rfid:
@@ -244,12 +254,12 @@ def main():
                     logger.info("Printing slip...")
                     if display:
                         display.set_speed(10)
-                        display.set_text("FOR YOU")
+                        display.set_text("VOILA")
                     
                     create_full_receipt(printer.printer, slip_data)
                     logger.info("Receipt printed successfully.")
-                    
-                    log_temperatures()                
+                    time.sleep(1)
+                               
 
             except Exception as e:
                 logger.error(f"Failed to print receipt: {e}")
@@ -259,9 +269,9 @@ def main():
             # Wait before next scan
             logger.info("State: FINISH (Waiting 20s)")
             if display:
-                display.set_speed(8)
+                display.set_speed(7)
                 display.set_text("THANK YOU!", direction="LEFT")
-            time.sleep(20)
+            time.sleep(5)
             
             # Ensure tags are removed before restarting cycle
             logger.info("Checking for remaining tags before restarting cycle...")

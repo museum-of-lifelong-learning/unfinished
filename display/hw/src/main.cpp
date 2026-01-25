@@ -13,7 +13,8 @@ MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES
 constexpr int DISPLAY_WIDTH = MAX_DEVICES * 8;
 
 // --- STATE & HELPERS -------------------------------------------------------
-enum Pattern { PATTERN_NONE, PATTERN_BORED, PATTERN_THINKING, PATTERN_FINISH, PATTERN_REMOVE_FIGURE, PATTERN_ERROR };
+enum Pattern { PATTERN_NONE, PATTERN_SNAKE, PATTERN_THINKING, PATTERN_FINISH, PATTERN_REMOVE_FIGURE, PATTERN_ERROR, PATTERN_TEXT };
+enum ScrollDirection { SCROLL_NONE, SCROLL_LEFT, SCROLL_RIGHT };
 
 struct Point { int8_t x, y; };
 
@@ -30,7 +31,9 @@ struct PatternState {
   int16_t var1 = 0;        // reusable
   int16_t var2 = 0;        // reusable
   unsigned long lastStep = 0;
-  SnakeState snake;        // For BORED state
+  SnakeState snake;        // For SNAKE state
+  String customText = "";  // For TEXT pattern
+  ScrollDirection scrollDir = SCROLL_NONE; // For TEXT pattern
 };
 
 PatternState ps;
@@ -233,8 +236,8 @@ void startPattern(Pattern p) {
   clearAll();
   
   switch (p) {
-    case PATTERN_BORED:
-      Serial.println("Pattern=BORED");
+    case PATTERN_SNAKE:
+      Serial.println("Pattern=SNAKE");
       initSnake();
       break;
     case PATTERN_THINKING:
@@ -253,6 +256,16 @@ void startPattern(Pattern p) {
       Serial.println("Pattern=ERROR");
       ps.var1 = 0; // blink toggle
       break;
+    case PATTERN_TEXT:
+      Serial.println("Pattern=TEXT");
+      if (ps.scrollDir == SCROLL_NONE) {
+        // Centered static text - render immediately
+        drawCentered(ps.customText);
+      } else {
+        // Scrolling text - start off-screen
+        ps.scrollX = (ps.scrollDir == SCROLL_LEFT) ? DISPLAY_WIDTH : -textWidth(ps.customText);
+      }
+      break;
     default:
       Serial.println("Pattern=NONE");
       break;
@@ -260,7 +273,7 @@ void startPattern(Pattern p) {
 }
 
 // --- PATTERN UPDATES -------------------------------------------------------
-void updateBored(unsigned long now) {
+void updateSnake(unsigned long now) {
   // Snake moves every 300ms
   if (now - ps.lastStep < 300) return;
   ps.lastStep = now;
@@ -364,14 +377,42 @@ void updateError(unsigned long now) {
   mx.update();
 }
 
+void updateText(unsigned long now) {
+  if (ps.scrollDir == SCROLL_NONE) {
+    // Static centered text - already rendered in startPattern
+    return;
+  }
+  
+  int interval = adjustedInterval(80);
+  if (now - ps.lastStep < (unsigned long)interval) return;
+  ps.lastStep = now;
+  
+  mx.clear();
+  drawText(ps.scrollX, 0, ps.customText);
+  mx.update();
+  
+  if (ps.scrollDir == SCROLL_LEFT) {
+    ps.scrollX--;
+    if (ps.scrollX < -textWidth(ps.customText)) {
+      ps.scrollX = DISPLAY_WIDTH;
+    }
+  } else if (ps.scrollDir == SCROLL_RIGHT) {
+    ps.scrollX++;
+    if (ps.scrollX > DISPLAY_WIDTH) {
+      ps.scrollX = -textWidth(ps.customText);
+    }
+  }
+}
+
 void updatePattern() {
   unsigned long now = millis();
   switch (ps.current) {
-    case PATTERN_BORED:    updateBored(now); break;
+    case PATTERN_SNAKE:    updateSnake(now); break;
     case PATTERN_THINKING: updateThinking(now); break;
     case PATTERN_FINISH:   updateFinish(now); break;
     case PATTERN_REMOVE_FIGURE: updateRemoveFigure(now); break;
     case PATTERN_ERROR:    updateError(now); break;
+    case PATTERN_TEXT:     updateText(now); break;
     default: break;
   }
 }
@@ -386,7 +427,7 @@ void handleCommand(const String &line) {
   if (cmd.startsWith("PATTERN ")) {
     String arg = cmd.substring(8);
     arg.trim();
-    if (arg == "BORED")      startPattern(PATTERN_BORED);
+    if (arg == "SNAKE")      startPattern(PATTERN_SNAKE);
     else if (arg == "THINKING") startPattern(PATTERN_THINKING);
     else if (arg == "FINISH")   startPattern(PATTERN_FINISH);
     else if (arg == "REMOVE_FIGURE") startPattern(PATTERN_REMOVE_FIGURE);
@@ -399,7 +440,45 @@ void handleCommand(const String &line) {
     Serial.println("OK");
     return;
   }
-
+  if (cmd.startsWith("TEXT ")) {
+    String arg = cmd.substring(5);
+    arg.trim();
+    
+    // Check for text length limit
+    if (arg.length() > 64) {
+      Serial.println("ERR TEXT TOO LONG (MAX 64)");
+      return;
+    }
+    
+    // Parse text and optional direction
+    int lastSpace = arg.lastIndexOf(' ');
+    String text = arg;
+    String direction = "";
+    
+    if (lastSpace > 0) {
+      String lastWord = arg.substring(lastSpace + 1);
+      lastWord.trim();
+      if (lastWord == "LEFT" || lastWord == "RIGHT" || lastWord == "CENTER") {
+        direction = lastWord;
+        text = arg.substring(0, lastSpace);
+        text.trim();
+      }
+    }
+    
+    // Set text and direction
+    ps.customText = text;
+    if (direction == "LEFT") {
+      ps.scrollDir = SCROLL_LEFT;
+    } else if (direction == "RIGHT") {
+      ps.scrollDir = SCROLL_RIGHT;
+    } else {
+      ps.scrollDir = SCROLL_NONE; // Default to centered
+    }
+    
+    startPattern(PATTERN_TEXT);
+    Serial.println("OK");
+    return;
+  }
   if (cmd == "STOP") {
     startPattern(PATTERN_NONE);
     Serial.println("OK");
@@ -432,11 +511,12 @@ void handleCommand(const String &line) {
   if (cmd == "STATUS") {
     Serial.print("OK PATTERN=");
     switch (ps.current) {
-      case PATTERN_BORED:    Serial.print("BORED"); break;
+      case PATTERN_SNAKE:    Serial.print("SNAKE"); break;
       case PATTERN_THINKING: Serial.print("THINKING"); break;
       case PATTERN_FINISH:   Serial.print("FINISH"); break;
       case PATTERN_REMOVE_FIGURE: Serial.print("REMOVE_FIGURE"); break;
       case PATTERN_ERROR:    Serial.print("ERROR"); break;
+      case PATTERN_TEXT:     Serial.print("TEXT"); break;
       default: Serial.print("NONE"); break;
     }
     Serial.print(" SPEED="); Serial.print(gSpeed);
@@ -445,7 +525,7 @@ void handleCommand(const String &line) {
   }
 
   if (cmd == "HELP") {
-    Serial.println("OK COMMANDS: PATTERN <BORED|THINKING|FINISH|REMOVE_FIGURE|ERROR>, STOP, CLEAR, SPEED <0-10>, BRIGHT <0-15>, STATUS, HELP");
+    Serial.println("OK COMMANDS: PATTERN <SNAKE|THINKING|FINISH|REMOVE_FIGURE|ERROR>, TEXT <message> [LEFT|RIGHT|CENTER], STOP, CLEAR, SPEED <0-10>, BRIGHT <0-15>, STATUS, HELP");
     return;
   }
 
@@ -473,7 +553,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("\n=== LED Controller Ready ===");
-  Serial.println("Commands: PATTERN <BORED|THINKING|FINISH|REMOVE_FIGURE>, STOP, CLEAR, SPEED <0-10>, BRIGHT <0-15>, STATUS, HELP");
+  Serial.println("Commands: PATTERN <SNAKE|THINKING|FINISH|REMOVE_FIGURE|ERROR>, TEXT <message> [LEFT|RIGHT|CENTER], STOP, CLEAR, SPEED <0-10>, BRIGHT <0-15>, STATUS, HELP");
 
   if (!mx.begin()) {
     Serial.println("Error initializing MD_MAX72XX library!");

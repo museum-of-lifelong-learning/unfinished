@@ -145,11 +145,11 @@ def main():
     # 2. Main Loop
     try:
         while True:
-            # State: BORED / SCANNING
-            logger.info("State: BORED (Scanning for 6 tags)")
+            # State: SNAKE / SCANNING
+            logger.info("State: SNAKE (Scanning for 6 tags)")
             if display:
                 display.set_brightness(2)
-                display.set_pattern("BORED")
+                display.set_pattern("SNAKE")
             
             # Scan for tags with maximum reliability using multi-polling
             # logger.info("Scanning for 6 tags (multi-polling mode - optimized)...")
@@ -167,11 +167,15 @@ def main():
                 logger.error(f"Error during tag reading: {e}")
                 continue
             
+            
             # We have 6 tags!
             logger.info("State: THINKING (Processing tags)")
             if display:
+                display.set_brightness(10)
+                display.set_text("HI")
+                time.sleep(2)
                 display.set_brightness(6)
-                display.set_pattern("THINKING")
+                display.set_text("THINKING", direction="LEFT")
             
             answers = data_service.find_answer_by_tags([tag['epc'] for tag in tags_list])
             
@@ -202,8 +206,6 @@ def main():
             
             # Generate and Print Receipt
             logger.info("State: PRINTING")
-            if display:
-                display.set_pattern("PRINTING")
             
             try:
                 if args.no_print:
@@ -240,6 +242,10 @@ def main():
                     
                     # Print the receipt with generated data
                     logger.info("Printing slip...")
+                    if display:
+                        display.set_speed(10)
+                        display.set_text("FOR YOU")
+                    
                     create_full_receipt(printer.printer, slip_data)
                     logger.info("Receipt printed successfully.")
                     
@@ -254,14 +260,15 @@ def main():
             logger.info("State: FINISH (Waiting 20s)")
             if display:
                 display.set_speed(8)
-                display.set_pattern("FINISH")
+                display.set_text("THANK YOU!", direction="LEFT")
             time.sleep(20)
             
             # Ensure tags are removed before restarting cycle
             logger.info("Checking for remaining tags before restarting cycle...")
             if rfid.has_tags_present():
                 if display:
-                    display.set_pattern("REMOVE_FIGURE")
+                    display.set_speed(7)
+                    display.set_text("REMOVE FIGURE", direction="LEFT")
                 logger.info("Tags detected after finish; waiting for removal...")
                 time.sleep(0.5)
                 

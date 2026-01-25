@@ -88,10 +88,22 @@ Xiao ESP32-C6                    MAX7219 Module Chain
 
 Commands are newline-terminated. Responses start with `OK` or `ERR`.
 
-- `PATTERN BORED` — slow abstract animation
-- `PATTERN THINKING` — shows `OH!`, then `HI` rises, then loops scrolling `thinking`
-- `PATTERN FINISH` — shows `THIS IS IT`, then one `BYE` scrolls, then clears
+### Pattern Commands
+- `PATTERN SNAKE` — snake game animation (idle/scanning state)
+- `PATTERN THINKING` — scrolling "THINKING" text
+- `PATTERN FINISH` — scrolling "THANK YOU FOR THE VISIT" message
+- `PATTERN REMOVE_FIGURE` — scrolling "PLEASE REMOVE FIGURE" message
+- `PATTERN ERROR` — blinking "ERROR" text
 - `STOP` — stop any pattern and clear
+- `CLEAR` — clear display
+
+### Text Command
+- `TEXT <message>` — display centered static text (max 64 chars)
+- `TEXT <message> LEFT` — scroll text left to right
+- `TEXT <message> RIGHT` — scroll text right to left
+- `TEXT <message> CENTER` — display centered static text (same as no direction)
+
+### Control Commands
 - `SPEED <0-10>` — animation speed (0 slow, 10 fast)
 - `BRIGHT <0-15>` — display brightness
 - `STATUS` — report current pattern, speed, brightness
@@ -111,10 +123,20 @@ def send(cmd):
 
 send('HELP')
 send('BRIGHT 8')
-send('SPEED 4')
+send('SPEED 5')
+
+# Show custom text centered
+send('TEXT HELLO')
+time.sleep(3)
+
+# Show scrolling text
+send('TEXT WELCOME TO THE MUSEUM LEFT')
+time.sleep(5)
+
+# Pattern animations
 send('PATTERN THINKING')
-time.sleep(6)
-send('PATTERN BORED')
+time.sleep(4)
+send('PATTERN SNAKE')
 time.sleep(5)
 send('PATTERN FINISH')
 time.sleep(4)

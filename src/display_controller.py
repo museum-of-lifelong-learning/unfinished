@@ -44,13 +44,37 @@ class DisplayController:
 
     def set_pattern(self, pattern):
         """
-        Set display pattern: BORED, THINKING, FINISH, PRINTING, ERROR, REMOVE_FIGURE
+        Set display pattern: SNAKE, THINKING, FINISH, PRINTING, ERROR, REMOVE_FIGURE
         """
         # Allow more patterns as per service usage
-        if pattern not in ["BORED", "THINKING", "FINISH", "PRINTING", "ERROR", "REMOVE_FIGURE"]:
+        if pattern not in ["SNAKE", "THINKING", "FINISH", "PRINTING", "ERROR", "REMOVE_FIGURE", "TEXT"]:
             logger.warning(f"Unknown pattern requested: {pattern}")
         
         self.send_command(f"PATTERN {pattern}")
+        resp = self.read_response()
+        return resp == "OK"
+    
+    def set_text(self, text, direction=None):
+        """
+        Display custom text with optional scrolling direction.
+        
+        Args:
+            text (str): Text to display (max 64 characters)
+            direction (str): Optional scrolling direction: 'LEFT', 'RIGHT', or None for centered
+        
+        Returns:
+            bool: True if command was acknowledged
+        """
+        if len(text) > 64:
+            logger.warning(f"Text too long ({len(text)} chars), truncating to 64")
+            text = text[:64]
+        
+        if direction and direction.upper() in ['LEFT', 'RIGHT', 'CENTER']:
+            cmd = f"TEXT {text} {direction.upper()}"
+        else:
+            cmd = f"TEXT {text}"
+        
+        self.send_command(cmd)
         resp = self.read_response()
         return resp == "OK"
     

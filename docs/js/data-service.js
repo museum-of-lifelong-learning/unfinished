@@ -229,8 +229,8 @@ const DataService = (function() {
      */
     async function getFigureData(dataId) {
         if (!dataId) {
-            console.warn('No data_id provided');
-            return null;
+            console.warn('No data_id provided, fetching random dataset');
+            return getRandomFigureData();
         }
 
         try {
@@ -249,6 +249,52 @@ const DataService = (function() {
             console.error('Error getting figure data:', error);
             return Object.assign({}, DEFAULT_FIGURE_DATA, { 
                 data_id: dataId,
+                Paragraph1: 'Unable to load figure data. Please try again later.'
+            });
+        }
+    }
+
+    /**
+     * Get a random figure dataset from the database
+     * Used when no data_id is provided in URL
+     * @returns {Promise<Object|null>} - Random figure data or null
+     */
+    async function getRandomFigureData() {
+        try {
+            console.log('Fetching random dataset from Supabase...');
+            
+            // Fetch all records (limit to reasonable amount for performance)
+            const url = CONFIG.SUPABASE_URL + '/rest/v1/' + CONFIG.TABLE_NAME + '?select=*&limit=100';
+            
+            const response = await fetch(url, {
+                headers: {
+                    'apikey': CONFIG.SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch random data: ' + response.statusText);
+            }
+
+            const data = await response.json();
+            
+            if (!data || data.length === 0) {
+                console.warn('No data available in database');
+                return DEFAULT_FIGURE_DATA;
+            }
+
+            // Pick a random entry
+            const randomIndex = Math.floor(Math.random() * data.length);
+            const randomRow = data[randomIndex];
+            
+            console.log('Selected random dataset:', randomRow.data_id);
+            return normalizeRowData(randomRow);
+
+        } catch (error) {
+            console.error('Error fetching random figure data:', error);
+            return Object.assign({}, DEFAULT_FIGURE_DATA, { 
                 Paragraph1: 'Unable to load figure data. Please try again later.'
             });
         }
@@ -302,6 +348,7 @@ const DataService = (function() {
         lookupByFigureId: lookupByFigureId,
         normalizeRowData: normalizeRowData,
         getFigureData: getFigureData,
-        getFigureDataByFigureId: getFigureDataByFigureId
+        getFigureDataByFigureId: getFigureDataByFigureId,
+        getRandomFigureData: getRandomFigureData
     };
 })();

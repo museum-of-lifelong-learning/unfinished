@@ -8,14 +8,15 @@ import sys
 import time
 import logging
 import argparse
+import subprocess
+import socket
 
-# Add Service module imports
 from temperature_service import log_temperatures
 from rfid_controller import auto_detect_rfid
 from display_controller import auto_detect_display
 from printer_controller import auto_detect_printer, PrinterController
 
-# Import refactored modules
+
 from slip_data_generation import generate_slip_data
 from slip_printing import create_full_receipt
 from supabase_upload import upload_slip_data, build_qr_url
@@ -46,6 +47,34 @@ logger = logging.getLogger(__name__)
 from content_generation import GEMINI_MODEL
 
 data_service = data_service.DataService()
+
+def check_internet_connection():
+    """Check if internet connection is available by trying to reach Google DNS."""
+    try:
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
+        return True
+    except OSError:
+        return False
+
+def get_wifi_ssid():
+    """Get the current WiFi SSID if connected."""
+    try:
+        # Try iwgetid first (most common on Linux)
+        result = subprocess.run(['iwgetid', '-r'], capture_output=True, text=True, timeout=2)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        
+        # Fallback: try nmcli
+        result = subprocess.run(['nmcli', '-t', '-f', 'active,ssid', 'dev', 'wifi'], 
+                              capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if line.startswith('yes:'):
+                    return line.split(':', 1)[1]
+        
+        return "Not connected"
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return "Unknown"
 
 def main():
     # Parse command line arguments
@@ -84,31 +113,31 @@ def main():
         logger.info("! Printer not detected, using Dummy")
         printer = PrinterController(connection_type='dummy')
 
+    # Check system status
+    logger.info("Checking system status...")
+    internet_status = "✓ Online" if check_internet_connection() else "✗ Offline"
+    wifi_ssid = get_wifi_ssid()
+    
     # Print status to console/log
-    rfid_status = 'CONNECTED' if rfid else 'MISSING'
-    display_status = 'CONNECTED' if display else 'MISSING'
-    printer_status = 'CONNECTED' if not isinstance(printer.printer, type(None)) else 'DUMMY'
+    rfid_status = '✓ Online' if rfid else '✗ Offline'
+    display_status = '✓ Online' if display else '✗ Offline'
+    printer_status = '✓ Online' if not isinstance(printer.printer, type(None)) else '⚠ Dummy Mode'
 
     status_msg = f"""
-=== SERVICE STATUS ===
-RFID Reader: {rfid_status}
-Display:     {display_status}
-Printer:     {printer_status}
-AI Model:    {GEMINI_MODEL}
-======================
+╔════════════════════════════════════════╗
+║        FIGURINE SERVICE STATUS         ║
+╠════════════════════════════════════════╣
+║ RFID Reader: {rfid_status:<25} ║
+║ Printer:     {printer_status:<25} ║
+║ Display:     {display_status:<25} ║
+║ Internet:    {internet_status:<25} ║
+║ WiFi:        {wifi_ssid:<25} ║
+║ AI Model:    {GEMINI_MODEL:<25} ║
+╚════════════════════════════════════════╝
 """
-    logger.info(status_msg)
+    print(status_msg)
+    logger.info("Service status check complete")
     
-    # if printer:
-    #     if not args.no_print:
-    #         printer.print_test_slip({
-    #             "RFID Reader": rfid_status,
-    #             "Display": display_status,
-    #             "Printer": printer_status,
-    #             "AI Model": OLLAMA_MODEL
-    #         })
-    #         logger.info("Test slip printed.")
-
     if not rfid:
         logger.error("Cannot proceed without RFID reader. Exiting.")
         sys.exit(1)
@@ -190,19 +219,24 @@ AI Model:    {GEMINI_MODEL}
                         model_name=GEMINI_MODEL
                     )
                     
-                    # Upload to Google Sheets and get data_id
-                    logger.info("Uploading slip data to Google Sheets...")
-                    data_id = upload_slip_data(slip_data)
-                    
-                    if data_id:
-                        # Update QR URL with actual data_id
-                        slip_data['qr_url'] = build_qr_url(data_id, figurine_id)
-                        slip_data['data_id'] = data_id
-                        logger.info(f"Upload successful. data_id: {data_id}")
+                    # Check if we're in offline mode (slip_data generation handles this)
+                    if slip_data.get('offline_mode', False):
+                        logger.info("[OFFLINE MODE] Using fallback data from CSV - skipping upload")
+                        logger.info(f"[OFFLINE MODE] Using data_id from CSV: {slip_data.get('data_id')}")
                     else:
-                        logger.warning("Upload failed, using fallback QR URL")
-                        # Fallback URL without data_id
-                        slip_data['qr_url'] = f"https://museum-of-lifelong-learning.github.io/unfinished/?figure_id={figurine_id}"
+                        # Online mode: Upload to Supabase and get data_id
+                        logger.info("Uploading slip data to Supabase...")
+                        data_id = upload_slip_data(slip_data)
+                        
+                        if data_id:
+                            # Update QR URL with actual data_id
+                            slip_data['qr_url'] = build_qr_url(data_id, figurine_id)
+                            slip_data['data_id'] = data_id
+                            logger.info(f"Upload successful. data_id: {data_id}")
+                        else:
+                            logger.warning("Upload failed, using fallback QR URL")
+                            # Fallback URL without data_id
+                            slip_data['qr_url'] = f"https://museum-of-lifelong-learning.github.io/unfinished/?figure_id={figurine_id}"
                     
                     # Print the receipt with generated data
                     logger.info("Printing slip...")

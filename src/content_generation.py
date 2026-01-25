@@ -115,7 +115,7 @@ _rate_limiter = GeminiRateLimiter()
 def generate_content_with_gemini(answers: List[Dict], data_service: DataService, figurine_id: int, model_name: str = GEMINI_MODEL) -> dict:
     """
     Generate personalized two-paragraph content using Google Gemini API based on user answers.
-    Falls back to template content if API is unavailable or rate limit is exceeded.
+    Returns empty content if API is unavailable (offline mode handles fallback separately).
     
     Args:
         answers: List of answer dictionaries from the user's tag selection
@@ -128,10 +128,10 @@ def generate_content_with_gemini(answers: List[Dict], data_service: DataService,
     logger.info(f"[GEMINI] Starting content generation using model {model_name}...")
     start_time = time.time()
     
-    # Default fallback content
-    fallback_content = {
-        'paragraph1': "Du bringst Bewegung in Räume, in denen andere noch zögern. Dein neugieriger Blick macht Wandel möglich.",
-        'paragraph2': "Der Wunsch nach Klarheit ist ein guter Anfang – er verbindet dich mit vielen, die gerade Neues erfinden. Das hier ist für dich:"
+    # Empty fallback - offline mode with CSV fallback handles actual content
+    empty_content = {
+        'paragraph1': '',
+        'paragraph2': ''
     }
 
     # Prepare output directory from .env or default
@@ -145,13 +145,13 @@ def generate_content_with_gemini(answers: List[Dict], data_service: DataService,
     
     # Check if API key is configured
     if not GEMINI_API_KEY or GEMINI_API_KEY == 'your_api_key_here':
-        logger.warning("[GEMINI] API key not configured, using fallback content")
-        return fallback_content
+        logger.warning("[GEMINI] API key not configured, returning empty content")
+        return empty_content
     
     # Check rate limits
     if not _rate_limiter.wait_if_needed():
-        logger.warning("[GEMINI] Daily rate limit exceeded, using fallback content")
-        return fallback_content
+        logger.warning("[GEMINI] Daily rate limit exceeded, returning empty content")
+        return empty_content
     
     try:
         # Configure Gemini API client
@@ -164,7 +164,7 @@ def generate_content_with_gemini(answers: List[Dict], data_service: DataService,
                 prompt_template = f.read()
         except Exception as e:
             logger.error(f"[GEMINI] Failed to load prompt template from file: {e}")
-            return fallback_content
+            return empty_content
 
         # Extract relevant information from answers
         mindset = get_prevalent_mindset(answers)
@@ -231,8 +231,8 @@ def generate_content_with_gemini(answers: List[Dict], data_service: DataService,
                         paragraph1 = paragraphs[0]
                         paragraph2 = "Das hier ist für dich:"
                 else:
-                    logger.warning("[GEMINI] No valid paragraphs in response, using fallback")
-                    return fallback_content
+                    logger.warning("[GEMINI] No valid paragraphs in response, returning empty content")
+                    return empty_content
                 logger.info(f"[GEMINI] Generated paragraph 1: {len(paragraph1)} chars")
                 logger.info(f"[GEMINI] Generated paragraph 2: {len(paragraph2)} chars")
                 result = {
@@ -253,9 +253,9 @@ def generate_content_with_gemini(answers: List[Dict], data_service: DataService,
         logger.error(f"[GEMINI] Failed to generate content: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        logger.info("[GEMINI] Using fallback content due to error")
-        _save_gemini_output(output_dir, figurine_id, fallback_content)
-        return fallback_content
+        logger.info("[GEMINI] Returning empty content due to error")
+        _save_gemini_output(output_dir, figurine_id, empty_content)
+        return empty_content
 
 
 # Helper to save output

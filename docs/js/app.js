@@ -6,6 +6,12 @@
 
     // Store the figure ID that we're displaying (from URL or random)
     let displayedFigureId = null;
+    
+    // Clear random session data on page load to allow new random selection on refresh
+    // This ensures F5 refresh generates new random figure/data
+    // But keeps the same data for multiple clicks within the same page load
+    sessionStorage.removeItem('figurine_random_figure_id');
+    sessionStorage.removeItem('figurine_random_data_id');
 
     // Get figure_id from URL parameter (uses DataService)
     function getFigureIdFromUrl() {
@@ -14,20 +20,20 @@
             if (figureId) return figureId;
         }
         
-        // Check if we already have a random figure in session
+        // Check if we already generated a random figure during this page load
         const sessionFigureId = sessionStorage.getItem('figurine_random_figure_id');
         if (sessionFigureId) {
             const parsed = parseInt(sessionFigureId, 10);
             if (!isNaN(parsed)) {
-                console.log('Using stored random figure_id from session:', parsed);
+                console.log('Using random figure_id from current page session:', parsed);
                 return parsed;
             }
         }
         
-        // Fallback: generate random figure and store it for the session
+        // Generate random figure and store it for this page load (until refresh)
         const randomFigureId = Math.floor(Math.random() * 27000) + 1;
         sessionStorage.setItem('figurine_random_figure_id', randomFigureId.toString());
-        console.log('Generated and stored new random figure_id:', randomFigureId);
+        console.log('Generated new random figure_id:', randomFigureId);
         return randomFigureId;
     }
     
@@ -38,10 +44,10 @@
             if (dataId) return dataId;
         }
         
-        // Check if we already have a random data_id in session
+        // Check if we already fetched random data during this page load
         const sessionDataId = sessionStorage.getItem('figurine_random_data_id');
         if (sessionDataId) {
-            console.log('Using stored random data_id from session:', sessionDataId);
+            console.log('Using random data_id from current page session:', sessionDataId);
             return sessionDataId;
         }
         
@@ -226,10 +232,10 @@
                             if (figureData) {
                                 console.log('✅ Loaded data:', figureData);
                                 
-                                // If we fetched random data (no data_id was in URL), store it for the session
+                                // If we fetched random data (no data_id was in URL), store it for this page load
                                 if (!dataId && figureData.data_id) {
                                     sessionStorage.setItem('figurine_random_data_id', figureData.data_id);
-                                    console.log('Stored random data_id for session:', figureData.data_id);
+                                    console.log('Stored random data_id for current page session:', figureData.data_id);
                                 }
                                 
                                 // Override figure_id with the displayed figure from URL/random

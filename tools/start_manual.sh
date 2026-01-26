@@ -1,7 +1,7 @@
 #!/bin/bash
 # Quick start script for manual testing
 
-cd /home/fi/unfinished-figurine
+cd ..
 
 echo "Activating virtual environment..."
 source venv/bin/activate

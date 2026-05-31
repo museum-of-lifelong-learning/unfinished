@@ -1,26 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-     width="79.78947368421052" height="243.99999999999997" viewBox="0 0 79.78947368421052 243.99999999999997">
+     width="73.4736842105263" height="243.99999999999997" viewBox="0 0 73.4736842105263 243.99999999999997">
 <defs>
 </defs>
-<g transform="translate(19.052631578947366, 2)">
+<g transform="translate(13.368421052631572, 2)">
+<g transform="scale(1.121212121212121,1)">
 <g>
-<path d="M6.252631578947368,0 L35.43157894736842,0 L35.43157894736842,9.473684210526315 L41.68421052631579,9.473684210526315 L41.68421052631579,18.94736842105263 L0,18.94736842105263 L0,9.473684210526315 L6.252631578947368,9.473684210526315 Z" fill="white" stroke="black" stroke-width="2" />
+<path d="M6.252631578947368,0 L35.43157894736842,0 L35.43157894736842,9.473684210526315 L41.68421052631579,9.473684210526315 L41.68421052631579,18.94736842105263 L0,18.94736842105263 L0,9.473684210526315 L6.252631578947368,9.473684210526315 Z" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
 </g>
 </g>
-<g transform="translate(20.94736842105263, 20.94736842105263)">
-<circle cx="18.94736842105263" cy="18.94736842105263" r="18.94736842105263" fill="white" stroke="black" stroke-width="2" />
 </g>
-<g transform="translate(2.0, 58.84210526315789)">
-<rect x="0" y="0" width="75.78947368421052" height="12.631578947368421" fill="white" stroke="black" stroke-width="2" />
+<g transform="translate(17.78947368421052, 20.94736842105263)">
+<circle cx="18.94736842105263" cy="18.94736842105263" r="18.94736842105263" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
 </g>
-<g transform="translate(14.631578947368421, 71.47368421052632)">
-<path d="M25.26315789473684,0 L50.52631578947368,37.89473684210526 L25.26315789473684,75.78947368421052 L0,37.89473684210526 Z" fill="white" stroke="black" stroke-width="2" />
+<g transform="translate(5.1578947368420955, 58.84210526315789)">
+<g transform="scale(2.2727272727272725,1)">
+<rect x="0" y="0" width="27.789473684210527" height="12.631578947368421" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
 </g>
-<g transform="translate(19.79095455681322, 147.26315789473682)">
-<rect x="0" y="0" width="40.20756457058409" height="75.78947368421052" rx="20.103782285292045" ry="20.103782285292045" fill="white" stroke="black" stroke-width="2" />
 </g>
-<g transform="translate(2.0, 223.05263157894734)">
-<path d="M0,18.94736842105263 L75.78947368421052,18.94736842105263 L64.42105263157895,0 L11.368421052631579,0 Z" fill="white" stroke="black" stroke-width="2" />
+<g transform="translate(2.0, 71.47368421052632)">
+<g transform="scale(1.375,1)">
+<path d="M25.26315789473684,0 L50.52631578947368,37.89473684210526 L25.26315789473684,75.78947368421052 L0,37.89473684210526 Z" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
+</g>
+</g>
+<g transform="translate(13.368421052631572, 147.26315789473682)">
+<g transform="scale(1.1623892818282235,1)">
+<rect x="0" y="0" width="40.20756457058409" height="75.78947368421052" rx="20.103782285292045" ry="20.103782285292045" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
+</g>
+</g>
+<g transform="translate(5.157894736842099, 223.05263157894734)">
+<g transform="scale(0.8333333333333334,1)">
+<path d="M0,18.94736842105263 L75.78947368421052,18.94736842105263 L64.42105263157895,0 L11.368421052631579,0 Z" fill="white" stroke="black" stroke-width="2" vector-effect="non-scaling-stroke" />
+</g>
 </g>
 </svg>

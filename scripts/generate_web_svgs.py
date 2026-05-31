@@ -19,8 +19,12 @@ from multiprocessing import Pool
 import time
 from typing import List, Optional
 
+# Resolve project paths from this file location.
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / 'src'))
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 import drawsvg as draw
 from shapes import get_shape, get_shape_width
@@ -30,7 +34,7 @@ TOKEN_HEIGHT_RATIOS = [1.5, 3, 1, 6, 6, 1.5]  # Height ratios for levels 1-6
 FIGURINE_HEIGHT = 240  # Total height for each figurine stack
 
 # Output configuration
-OUTPUT_DIR = Path(__file__).parent / 'docs' / 'assets' / 'figures'
+OUTPUT_DIR = PROJECT_ROOT / 'docs' / 'assets' / 'figures'
 
 
 def get_data_service():

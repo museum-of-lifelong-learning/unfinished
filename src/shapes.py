@@ -365,12 +365,23 @@ def draw_facing_bowls(height):
     path.Z()
     return path
 
+
+def _scaled_shape(draw_func, x_scale=1.0):
+    """Return a shape drawer that scales geometry horizontally around origin."""
+    def _draw(height):
+        if x_scale == 1.0:
+            return draw_func(height)
+        group = draw.Group(transform=f"scale({x_scale},1)")
+        group.append(draw_func(height))
+        return group
+    return _draw
+
 # =============================================================================
 # SHAPE REGISTRY
 # =============================================================================
 
-# All available shapes mapped to their drawing functions
-SHAPE_MENU = {
+# Base shapes only — no layer aliases.
+BASE_SHAPE_MENU = {
     "semioval": draw_wide_semioval,
     "wide_rectangle": draw_wide_rectangle,
     "capsule_pill": draw_capsule_pill,
@@ -394,8 +405,8 @@ SHAPE_MENU = {
     "facing_bowls": draw_facing_bowls,
 }
 
-# Width ratios for each shape (width = height * ratio)
-SHAPE_WIDTH_RATIOS = {
+# Width ratios for base shapes (width = height * ratio).
+BASE_SHAPE_WIDTH_RATIOS = {
     "semioval": 2.5,
     "wide_rectangle": 2.2,
     "capsule_pill": 2.5,
@@ -409,8 +420,8 @@ SHAPE_WIDTH_RATIOS = {
     "flat_trapezoid": 4.0,
     "tall_pyramid": 2/3,
     "rhombus_udlr": 2/3,
-    "stacked_circles": 4/7,  # 2*r where r = 2h/7
-    "stacked_circles_custom": 40/49,  # 2*lower_r where lower_r = 20h/49
+    "stacked_circles": 4/7,
+    "stacked_circles_custom": 40/49,
     "upright_pill": 10/(math.pi * 6),
     "flat_pyramid_sockel": 4.0,
     "tall_trapezoid": 2/3,
@@ -418,6 +429,72 @@ SHAPE_WIDTH_RATIOS = {
     "double_upright_pill": 2/3,
     "facing_bowls": 0.7,
 }
+
+# Per-layer CAD dimensions for each shape alias.
+# Replace placeholder values with actual dimensions from your design tool.
+# Only the ratio (cad_width / cad_height) is used at runtime; units are arbitrary.
+ALIAS_CAD_CONFIG = {
+    # F01 — feet/base layer
+    "semioval_f01":               {"base_shape": "semioval",            "cad_width": 50, "cad_height": 15},
+    "wide_rectangle_f01":         {"base_shape": "wide_rectangle",      "cad_width": 50,  "cad_height": 15},
+    "capsule_pill_f01":           {"base_shape": "capsule_pill",        "cad_width": 50,   "cad_height": 15},
+    "flat_pyramid_f01":           {"base_shape": "flat_pyramid",        "cad_width": 50,  "cad_height": 15},
+    "flat_trapezoid_f01":         {"base_shape": "flat_trapezoid",      "cad_width": 50,  "cad_height": 15},
+
+    # F02 — legs layer
+    "tall_pyramid_f02":           {"base_shape": "tall_pyramid",        "cad_width": 40,     "cad_height": 60},
+    "rhombus_udlr_f02":           {"base_shape": "rhombus_udlr",        "cad_width": 40,     "cad_height": 60},
+    "upright_pill_f02":           {"base_shape": "upright_pill",        "cad_width": 37,    "cad_height": 60},
+    "double_upright_pill_f02":    {"base_shape": "double_upright_pill", "cad_width": 44,     "cad_height": 60},
+    "stacked_circles_f02":        {"base_shape": "stacked_circles",     "cad_width": 37,     "cad_height": 60},
+
+    # F03 — body layer
+    "stepped_block_3_f03":        {"base_shape": "stepped_block_3",     "cad_width": 55,     "cad_height": 60},
+    "stacked_circles_custom_f03": {"base_shape": "stacked_circles_custom", "cad_width": 45, "cad_height": 60},
+    "rhombus_udlr_f03":           {"base_shape": "rhombus_udlr",        "cad_width": 55,     "cad_height": 60},
+    "tall_trapezoid_f03":         {"base_shape": "tall_trapezoid",      "cad_width": 50,     "cad_height": 60},
+    "facing_bowls_f03":           {"base_shape": "facing_bowls",        "cad_width": 50,     "cad_height": 60},
+
+    # F04 — arms layer
+    "wide_rectangle_f04_1":          {"base_shape": "wide_rectangle",       "cad_width": 60,     "cad_height": 10},
+    "wide_rectangle_f04_2":          {"base_shape": "wide_rectangle",       "cad_width": 50,     "cad_height": 10},
+    "wide_rectangle_f04_3":          {"base_shape": "wide_rectangle",       "cad_width": 70,     "cad_height": 10},
+    "wide_rectangle_f04_4":          {"base_shape": "wide_rectangle",       "cad_width": 50,     "cad_height": 10},
+    "wide_rectangle_f04_5":          {"base_shape": "wide_rectangle",       "cad_width": 70,     "cad_height": 10},
+    "wide_rectangle_f04_6":          {"base_shape": "wide_rectangle",       "cad_width": 70,     "cad_height": 10},
+
+    # F05 — head layer
+    "sphere_circle_f05":          {"base_shape": "sphere_circle",       "cad_width": 33,     "cad_height": 33},
+
+    # F06 — hat/top layer
+    "capsule_pill_f06":           {"base_shape": "capsule_pill",        "cad_width": 37,   "cad_height": 15},
+    "semioval_f06":               {"base_shape": "semioval",            "cad_width": 37,  "cad_height": 15},
+    "flat_pyramid_sockel_f06":    {"base_shape": "flat_pyramid_sockel", "cad_width": 37,  "cad_height": 15},
+    "stepped_block_f06":          {"base_shape": "stepped_block",       "cad_width": 37,  "cad_height": 15},
+    "wide_rectangle_f06":         {"base_shape": "wide_rectangle",      "cad_width": 37, "cad_height": 15},
+}
+
+
+def _alias_ratio_from_cad(cfg: dict) -> float:
+    """Compute width/height ratio from a CAD config entry."""
+    return cfg["cad_width"] / cfg["cad_height"]
+
+
+def _alias_drawer_from_cad(cfg: dict):
+    """Return a shape-drawing function for an alias, derived from its CAD dimensions."""
+    base = cfg["base_shape"]
+    ratio = _alias_ratio_from_cad(cfg)
+    x_scale = ratio / BASE_SHAPE_WIDTH_RATIOS[base]
+    return _scaled_shape(BASE_SHAPE_MENU[base], x_scale)
+
+
+# Public registries: base shapes merged with all layer aliases.
+# These are the dicts used by get_shape() and get_shape_width().
+SHAPE_MENU = {**BASE_SHAPE_MENU}
+SHAPE_WIDTH_RATIOS = {**BASE_SHAPE_WIDTH_RATIOS}
+for _alias, _cfg in ALIAS_CAD_CONFIG.items():
+    SHAPE_MENU[_alias] = _alias_drawer_from_cad(_cfg)
+    SHAPE_WIDTH_RATIOS[_alias] = _alias_ratio_from_cad(_cfg)
 
 
 # =============================================================================
@@ -454,6 +531,41 @@ def get_shape_width(name: str, height: float) -> float:
     """
     ratio = SHAPE_WIDTH_RATIOS.get(name, 2.5)
     return height * ratio
+
+
+def get_shape_with_dimensions(name: str, height: float, width: float):
+    """
+    Get a shape element by name with exact target height and width.
+
+    This keeps the existing per-shape vertical geometry defined by `height`
+    and applies horizontal scaling so the final shape width matches `width`.
+
+    Args:
+        name: Shape name from SHAPE_MENU
+        height: Exact target shape height
+        width: Exact target shape width
+
+    Returns:
+        drawsvg element or None if shape not found
+    """
+    if height <= 0 or width <= 0:
+        raise ValueError("height and width must be > 0")
+
+    shape = get_shape(name, height)
+    if shape is None:
+        return None
+
+    current_width = get_shape_width(name, height)
+    if current_width == 0:
+        raise ValueError(f"Calculated width is zero for shape '{name}'")
+
+    x_scale = width / current_width
+    if abs(x_scale - 1.0) < 1e-9:
+        return shape
+
+    group = draw.Group(transform=f"scale({x_scale},1)")
+    group.append(shape)
+    return group
 
 
 def list_shapes() -> list:

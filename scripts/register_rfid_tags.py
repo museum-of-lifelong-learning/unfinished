@@ -112,10 +112,19 @@ def main():
             
             print(f"\n✓ Tag detected: {tag_id} (RSSI: {rssi})")
             
-            # Check if tag already exists in Excel
-            existing_rows = df[df['RFID_Tag_ID'] == tag_id]
-            if not existing_rows.empty:
-                existing_answer = existing_rows.iloc[0]['Antwort_ID']
+            # Check if tag already exists in Excel (could be alone or in comma-separated list)
+            existing_indices = []
+            for idx, row in df.iterrows():
+                val = row.get('RFID_Tag_ID')
+                if pd.isna(val):
+                    continue
+                row_tags = [t.strip().upper() for t in str(val).split(',') if t.strip()]
+                if tag_id.upper() in row_tags:
+                    existing_indices.append(idx)
+
+            if existing_indices:
+                first_idx = existing_indices[0]
+                existing_answer = df.loc[first_idx, 'Antwort_ID'] or f"Row {first_idx}"
                 print(f"  ⚠ This tag is already assigned to: {existing_answer}")
                 overwrite = input("  Reassign? (y/N): ").strip().lower()
                 if overwrite != 'y':
@@ -123,8 +132,17 @@ def main():
                     print("-" * 60)
                     continue
                 else:
-                    # Clear existing assignment
-                    df.loc[df['RFID_Tag_ID'] == tag_id, 'RFID_Tag_ID'] = None
+                    # Clear existing assignment (remove tag_id from any matching rows)
+                    for idx in existing_indices:
+                        val = df.loc[idx, 'RFID_Tag_ID']
+                        if not pd.isna(val):
+                            tags = [t.strip().upper() for t in str(val).split(',') if t.strip()]
+                            remaining_tags = [t for t in tags if t != tag_id.upper()]
+                            if remaining_tags:
+                                df.loc[idx, 'RFID_Tag_ID'] = ", ".join(remaining_tags)
+                            else:
+                                df.loc[idx, 'RFID_Tag_ID'] = None
+                    modified = True
             
             # Get answer ID from user
             answer_id = input("Enter Answer ID (e.g., A01): ").strip().upper()
@@ -144,28 +162,38 @@ def main():
                 print("-" * 60)
                 continue
             
-            # Check if this answer already has a tag
+            # Check if this answer already has tag(s)
             row_idx = answer_rows.index[0]
             existing_tag = df.loc[row_idx, 'RFID_Tag_ID']
             
-            if pd.notna(existing_tag):
-                print(f"  ⚠ Answer '{answer_id}' already has tag: {existing_tag}")
-                replace = input("  Replace? (y/N): ").strip().lower()
-                if replace != 'y':
+            if pd.notna(existing_tag) and str(existing_tag).strip() != "":
+                print(f"  ⚠ Answer '{answer_id}' already has tag(s): {existing_tag}")
+                choice = input("  Choose action - [A]ppend, [R]eplace, or [C]ancel: ").strip().lower()
+                if choice == 'a':
+                    tags = [t.strip().upper() for t in str(existing_tag).split(',') if t.strip()]
+                    if tag_id.upper() not in tags:
+                        tags.append(tag_id.upper())
+                    df.loc[row_idx, 'RFID_Tag_ID'] = ", ".join(tags)
+                elif choice == 'r':
+                    df.loc[row_idx, 'RFID_Tag_ID'] = tag_id.upper()
+                else:
                     print("  Skipped.\n")
                     print("-" * 60)
                     continue
+            else:
+                # Assign tag to answer (first tag)
+                df.loc[row_idx, 'RFID_Tag_ID'] = tag_id.upper()
             
-            # Assign tag to answer
-            df.loc[row_idx, 'RFID_Tag_ID'] = tag_id
             modified = True
             
             # Show the answer details
             answer_text = df.loc[row_idx, 'Antwort'] if 'Antwort' in df.columns else 'N/A'
+            current_tags = df.loc[row_idx, 'RFID_Tag_ID']
             print(f"\n✓ Registered:")
             print(f"  Tag:    {tag_id}")
             print(f"  Answer: {answer_id}")
             print(f"  Text:   {answer_text}")
+            print(f"  All Tags for this answer: {current_tags}")
             print()
             
             # Count how many tags are registered

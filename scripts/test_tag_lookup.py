@@ -14,14 +14,12 @@ from data_service import DataService
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Test tags from the user's output
+# Test tags from the active entries (A01, A02, A03)
 TEST_TAGS = [
-    'E28069150000700B3E03A060',
-    'E28069150000600B3E03B060',
-    'E28069150000700B3E03AC60',
-    'E28069150000600B3E03A460',
-    'E28069150000700B3E03B460',
-    'E28069150000600B3E03C860'
+    'E28069150000600B3E03F860',
+    'E28069150000700B3E03E860',
+    'E28069150000600B3E03F460',
+    'E28069150000600B3E03D060'
 ]
 
 def main():
@@ -33,6 +31,19 @@ def main():
     # Initialize data handler
     handler = DataService(excel_path="assets/Unfinished_data_collection.xlsx")
     print()
+    
+    # Let's dynamically add a comma-separated tag to Answer A01 for testing multi-tag features
+    if handler.answers_df is not None:
+        idx_list = handler.answers_df[handler.answers_df['Antwort_ID'] == 'A01'].index
+        if len(idx_list) > 0:
+            row_idx = idx_list[0]
+            orig_tag = handler.answers_df.loc[row_idx, 'RFID_Tag_ID']
+            test_tags_combined = f"{orig_tag}, TEST_EXTRA_TAG_1, TEST_EXTRA_TAG_2"
+            handler.answers_df.loc[row_idx, 'RFID_Tag_ID'] = test_tags_combined
+            print(f"🧬 In-memory modification for testing: Assigned '{test_tags_combined}' to A01")
+            
+            # Add these test extra tags to our search list
+            TEST_TAGS.extend(['TEST_EXTRA_TAG_1', 'test_extra_tag_2'])
     
     # Search for tags
     print(f"Searching for {len(TEST_TAGS)} tags:")

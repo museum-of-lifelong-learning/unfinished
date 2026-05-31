@@ -159,10 +159,10 @@ class DataService:
                     if pd.isna(row_tag):
                         continue
                     
-                    # Normalize and compare
-                    row_tag_normalized = str(row_tag).strip().upper()
+                    # Support multiple comma-separated tags
+                    row_tags = [t.strip().upper() for t in str(row_tag).split(',') if t.strip()]
                     
-                    if row_tag_normalized == tag:
+                    if tag in row_tags:
                         logger.debug(f"Tag {tag}: Found at row {idx}")
                         results.append(row.to_dict())
                         found = True
